@@ -1,6 +1,6 @@
 import threading
 # from scripts.data_stream_simulator import data_stream_simulator
-from src.main.python.data_cleaning import clean_raw_data
+from src.data_cleaning import clean_raw_data
 
 def main():
     # Create thread objects
