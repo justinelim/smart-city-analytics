@@ -1,19 +1,24 @@
 import threading
 # from scripts.data_stream_simulator import data_stream_simulator
-from src.data_cleaning import clean_raw_data
+# from src.data_cleaning import clean_raw_data
+from src.data_processing import kafka_es_http
 
 def main():
     # Create thread objects
     # thread1 = threading.Thread(target=data_stream_simulator)
-    thread2 = threading.Thread(target=clean_raw_data)
+    # thread2 = threading.Thread(target=clean_raw_data)
+    thread3 = threading.Thread(target=kafka_es_http.main)
 
     # Start the threads
     # thread1.start()
-    thread2.start()
+    # thread2.start()
+    thread3.start()
+
 
     # Wait for the threads to finish
     # thread1.join()
-    thread2.join()
+    # thread2.join()
+    thread3.join()
 
 if __name__ == "__main__":
     main()

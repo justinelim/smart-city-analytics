@@ -173,7 +173,7 @@ DROP TABLE IF EXISTS `clean_road_traffic`;
 CREATE TABLE `clean_road_traffic` (
 `status` CHAR(10),
 `avg_measured_time` INT,
-`avg_peed` INT,
+`avg_speed` INT,
 `ext_id` INT,
 `median_measured_time` INT,
 `timestamp` TIMESTAMP,

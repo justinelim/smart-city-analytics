@@ -5,6 +5,7 @@ avro-python3==1.9.2.1
 certifi==2023.7.22
 charset-normalizer==3.2.0
 cloudpickle==2.2.0
+confluent-kafka==2.2.0
 crcmod==1.7
 dill==0.3.1.1
 docopt==0.6.2
@@ -17,6 +18,7 @@ httplib2==0.20.4
 idna==3.4
 influxdb==5.3.1
 msgpack==1.0.7
+mysql-connector-python==8.1.0
 numpy==1.21.6
 objsize==0.5.2
 orjson==3.9.7

@@ -13,8 +13,6 @@ SELECT * FROM library_events;
 SELECT COUNT(*) FROM library_events;
 SELECT COUNT(distinct id) FROM library_events;
 
-SELECT * FROM clean_library_events;
-
 SELECT * FROM parking;
 SELECT * FROM parking_metadata;
 SELECT * FROM pollution;
@@ -23,6 +21,7 @@ SELECT * FROM social_events;
 SELECT * FROM weather;
 
 SELECT * FROM clean_cultural_events;
+SELECT * FROM clean_library_events;
 SELECT * FROM clean_parking;
 SELECT * FROM clean_pollution;
 SELECT * FROM clean_road_traffic;

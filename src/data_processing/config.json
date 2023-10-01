@@ -1,0 +1,86 @@
+{
+    "clean_cultural_events": {
+        "field_names": [
+            "row_id", "city", "event_name", "ticket_url",
+            "ticket_price", "timestamp", "postal_code", "longitude",
+            "event_id", "event_description", "venue_address", "venue_name",
+            "event_date", "latitude", "venue_url", "organizer_id",
+            "category", "image_url", "event_type"
+        ],
+        "field_types": [
+            "INT", "STRING", "STRING", "STRING", 
+            "STRING", "DATETIME", "INT", "FLOAT", 
+            "INT", "STRING", "STRING", "STRING",
+            "DATETIME", "FLOAT", "STRING", "INT",
+            "STRING", "STRING", "STRING"
+        ]
+    },
+    "clean_library_events": {
+        "field_names": [
+            "row_id", "city", "event_name", "ticket_url",
+            "ticket_price", "timestamp", "postal_code", "longitude",
+            "event_id", "event_description", "venue_address", "venue_name",
+            "event_date", "latitude", "venue_url", "organizer_id",
+            "category", "image_url", "event_type"
+        ],
+        "field_types": [
+            "INT", "STRING", "INT", "INT", 
+            "STRING", "STRING", "STRING", "INT", 
+            "STRING", "STRING", "FLOAT", "FLOAT"
+        ]
+    },
+    "clean_parking": {
+        "field_names": [
+            "vehicle_count", "update_time", "_id", "total_spaces",
+            "garage_code", "stream_time", "city", "postal_code",
+            "street", "house_number", "latitude", "longitude"
+        ],
+        "field_types": [
+            "INT", "DATETIME", "INT", "INT", 
+            "STRING", "DATETIME", "STRING", "INT", 
+            "STRING", "STRING", "FLOAT", "FLOAT"
+        ]
+    },
+    "clean_pollution": {
+        "field_names": [
+            "ozone", "particullate_matter", "carbon_monoxide", "sulfure_dioxide",
+            "nitrogen_dioxide", "longitude", "latitude", "timestamp"
+        ],
+        "field_types": [
+            "INT", "INT", "INT", "INT",
+            "INT", "FLOAT", "FLOAT", "DATETIME"
+        ]
+    },
+    "clean_road_traffic": {
+        "field_names": [
+            "status", "avg_measured_time", "avg_speed", "ext_id",
+            "median_measured_time", "timestamp", "vehicle_count", "_id",
+            "report_id"
+        ],
+        "field_types": [
+            "STRING", "DATETIME", "INT", "INT",
+            "DATETIME", "DATETIME", "INT", "INT", 
+            "INT"
+        ]
+    },
+    "clean_social_events": {
+        "field_names": [
+            "event_type", "webcast_url", "event_details", "webcast_url_alternate",
+            "event_date"
+        ],
+        "field_types": [
+            "STRING", "STRING", "STRING", "STRING", "STRING",
+            "DATETIME"
+        ]
+    },
+    "clean_weather": {
+        "field_names": [
+            "timestamp", "temperature", "wind_speed", "dewptm",
+            "humidity", "pressure", "visibility", "wind_direction"
+        ],
+        "field_types": [
+            "DATETIME", "FLOAT", "FLOAT", "FLOAT",
+            "INT", "INT", "FLOAT", "INT"
+        ]
+    }
+}
