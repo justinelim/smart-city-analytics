@@ -4,15 +4,37 @@ import json
 import glob
 import pandas as pd
 import numpy as np
-from utils import connect_to_mysql
+from utils import connect_to_mysql, load_config
+
+print('data_extractor is running')
 
 class DataExtractor:
-    def __init__(self, table:str, fields:tuple, destination_dir:str, tar_file_pattern:str=None, zip_file_pattern:str=None) -> None:
-        self.table = table
-        self.fields = fields
-        self.destination_dir = destination_dir
-        self.tar_file_pattern = tar_file_pattern
-        self.zip_file_pattern = zip_file_pattern
+    def __init__(self, dataset_list:list, config_path:str) -> None:
+        self.dataset_list = dataset_list
+        self.config_path = config_path
+        self.config = load_config(self.config_path)
+
+    def extract_data(self):
+        
+        for dataset in self.dataset_list:
+            self.load_raw_config(dataset)
+            
+            if dataset not in ("cultural_events", "library_events"):
+                self.decompress()
+
+            if dataset != 'weather':
+                self.extract_from_csv()
+            else:
+                self.extract_from_json()
+
+    def load_raw_config(self, dataset):
+        dataset_config = self.config.get(dataset, {})
+        self.raw_table = dataset_config.get("raw_table", None)
+        self.raw_field_names = tuple(dataset_config.get("raw_field_names", ()))
+        self.destination_dir = dataset_config.get('destination_dir', None)
+        self.tar_file_pattern = dataset_config.get('tar_file_pattern', None)
+        self.zip_file_pattern = dataset_config.get('zip_file_pattern', None)
+
 
     def decompress(self):
         if self.tar_file_pattern:
@@ -43,7 +65,7 @@ class DataExtractor:
                 df = pd.read_csv(file_path, header=None)
                 
                 # Determine if the first row matches the expected header values
-                has_header = True if tuple(df.iloc[0]) == self.fields else False
+                has_header = True if tuple(df.iloc[0]) == self.raw_field_names else False
 
                 # Iterate over the rows of the DataFrame and insert into the MySQL table
                 for index, row in enumerate(df.itertuples(index=False, name=None), start=1):
@@ -52,9 +74,12 @@ class DataExtractor:
 
                     values = tuple(np.where(pd.isnull(row), None, row))
                     placeholders = ", ".join(["%s"] * len(values))
-                    fields = ', '.join(self.fields)
-                    sql = f"INSERT INTO {self.table} ({fields}) VALUES ({placeholders})"
+                    fields = ', '.join(self.raw_field_names)
+                    sql = f"INSERT INTO {self.raw_table} ({fields}) VALUES ({placeholders})"
+                    # print("Executing query:", sql)
+                    # print("With values:", values)
                     cursor.execute(sql, values)
+                    
 
                 conn.commit()
 
@@ -105,86 +130,29 @@ class DataExtractor:
         for index, row in enumerate(df.itertuples(index=False, name=None), start=1):
             values = tuple(np.where(pd.isnull(row), None, row))
             placeholders = ", ".join(["%s"] * len(values))
-            fields = ', '.join(self.fields)
-            sql = f"INSERT INTO {self.table} ({fields}) VALUES ({placeholders})"
+            fields = ', '.join(self.raw_field_names)
+            sql = f"INSERT INTO {self.raw_table} ({fields}) VALUES ({placeholders})"
             cursor.execute(sql, values)
 
             conn.commit()
 
         conn.close()
 
-if __name__ == '__main__':
-    data_sources_dict = {
-        # 'cultural_events': {
-        #     'table_name': 'cultural_events',
-        #     'fields': ('row_id', 'city', 'event_name', 'ticket_url', 'ticket_price', 'timestamp', 'postal_code', 'longitude', 'event_id', 'event_description', 'venue_address', 'venue_name', 'event_date', 'latitude', 'venue_url', 'organizer_id', 'category', 'image_url', 'event_type'),
-        #     'destination_dir': 'resources/cultural_events_dataset',
-        #     'tar_file_pattern': None,
-        #     'zip_file_pattern': None
-        # },
-        # 'library_events': {
-        #     'table_name': 'library_events',
-        #     'fields': ('lid', 'city', 'endtime', 'title', 'url', 'price', 'changed', 'content', 'zipcode', 'library', 'imageurl', 'teaser', 'street', 'status', 'longitude', 'starttime', 'latitude', '_id', 'id', 'streamtime'),
-        #     'destination_dir': 'resources/library_events_dataset',
-        #     'tar_file_pattern': None,
-        #     'zip_file_pattern': None
-        # },
-        'parking': {
-            'table_name': 'parking',
-            'fields': ('vehiclecount', 'updatetime', '_id', 'totalspaces', 'garagecode', 'streamtime'),
-            'destination_dir': 'resources/parking_dataset',
-            'tar_file_pattern': None,
-            'zip_file_pattern': None
-        },
-        'parking_metadata': {
-            'table_name': 'parking_metadata',
-            'fields': ('garagecode', 'city', 'postalcode', 'street', 'housenumber', 'latitude', 'longitude'),
-            'destination_dir': 'resources/parking_metadata',
-            'tar_file_pattern': None,
-            'zip_file_pattern': None
-        },
-        # 'pollution': {
-        #     'table_name': 'pollution',
-        #     'fields': ('ozone', 'particullate_matter', 'carbon_monoxide', 'sulfure_dioxide', 'nitrogen_dioxide', 'longitude', 'latitude', 'timestamp'),
-        #     'destination_dir': 'resources/extracted_pollution_datasets',
-        #     'tar_file_pattern': 'resources/citypulse_pollution_*.tar.gz',
-        #     'zip_file_pattern': None
-        # },
-        # 'road_traffic': {
-        #     'table_name': 'road_traffic',
-        #     'fields': ('status', 'avgMeasuredTime', 'avgSpeed', 'extID', 'medianMeasuredTime', 'TIMESTAMP', 'vehicleCount', '_id', 'REPORT_ID'),
-        #     'destination_dir': 'resources/extracted_road_traffic_datasets',
-        #     'tar_file_pattern': 'resources/citypulse_traffic_*.tar.gz',
-        #     'zip_file_pattern': 'resources/citypulse_traffic_*.zip'
-        # },
-        # 'social_events': {
-        #     'table_name': 'social_events',
-        #     'fields': ('event_type', 'webcast_url', 'event_details', 'webcast_url_alternate', 'event_date'),
-        #     'destination_dir': 'resources/social_events_dataset',
-        #     'tar_file_pattern': None,
-        #     'zip_file_pattern': None
-        # },
-        # 'weather': {
-        #     'table_name': 'weather',
-        #     'fields': ('timestamp', 'tempm', 'wspdm', 'dewptm', 'hum', 'pressurem', 'vism', 'wdird'),
-        #     'destination_dir': 'resources/extracted_weather_datasets',
-        #     'tar_file_pattern': 'resources/raw_weather_data_*.tar.gz',
-        #     'zip_file_pattern': 'resources/raw_weather_data_*.zip'
-        # },
-    }
+def main():
+    dataset_list = [
+        # "cultural_events",
+        "library_events",
+        # "parking",
+        # "parking_metadata",
+        # "pollution",
+        # "road_traffic",
+        # "social_events",
+        # "weather"
+        ]
+    config_path = "config.json"
 
-    for data_source in data_sources_dict:
-        extractor = DataExtractor(data_sources_dict[data_source]['table_name'],
-                data_sources_dict[data_source]['fields'],
-                data_sources_dict[data_source]['destination_dir'],
-                data_sources_dict[data_source]['tar_file_pattern'],
-                data_sources_dict[data_source]['zip_file_pattern'])
-        
-        if data_source not in ('cultural_events', 'library_events'):
-            extractor.decompress()
-        
-        if data_source != 'weather':
-            extractor.extract_from_csv()
-        else:
-            extractor.extract_from_json()
-    
+    extractor = DataExtractor(dataset_list=dataset_list, config_path=config_path)
+    extractor.extract_data()
+
+if __name__ == '__main__':
+    main()

@@ -1,6 +1,8 @@
 import os
 import mysql.connector
 from dotenv import load_dotenv
+import re
+import json
 
 load_dotenv()
 
@@ -14,15 +16,10 @@ mysql_config = {
 def connect_to_mysql():
     return mysql.connector.connect(**mysql_config)
 
-def deserialize_kafka_message_bytes(incoming_message: bytes) -> list:
-    # if isinstance(incoming_message, bytes):
-    incoming_message_str = str(incoming_message.decode('utf-8'))
-    return incoming_message_str.split(',')
-
-def deserialize_kafka_message_str(message: str) -> tuple:
-    fields = message.split(',')
-    return (int(fields[0]), fields[1], int(fields[2]), int(fields[3]), fields[4], fields[5], fields[6], int(fields[7]), fields[8], fields[9], float(fields[10]), float(fields[11]))
-# parking: 0 vehicle_count, 1 update_time, 2 _id, 3 total_spaces, 4 garage_code, 5 stream_time, 6 city, 7 postal_code, 8 street, 9 house_number, 10 latitude, 11 longitude
+def load_config(config_path):
+        with open(config_path, 'r') as config_file:
+            config = json.load(config_file)
+        return config
 
 def handle_html_field(message: str, html_field_idx: int):
     html_pattern = re.compile('<(p|h1|h2)>.*<\/(p|h1|h2)>', re.S)
@@ -46,3 +43,12 @@ def handle_html_field(message: str, html_field_idx: int):
     print('LEN_MODIFIED_MESSAGE', len(modified_message))
     
     return modified_message, placeholders, html_field
+
+def publish_message(producer, topic: str, message: list):
+    # Publish the processed message to a Kafka topic
+    # serialized_message = ', '.join(str(field) for field in message)
+    # print('MESSAGE_TO_TOPIC', serialized_message)
+    # else:
+    #     serialized_message = message
+    producer.produce(topic=topic, value=message)
+    # producer.flush()
