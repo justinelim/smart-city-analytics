@@ -67,7 +67,7 @@
         "zip_file_pattern": null
     },
     "pollution": {
-        "processor_class": "PollutionProcessor",
+        "processor_class": "DataProcessor",
         "raw_table": "pollution",
         "raw_field_names": ["ozone", "particullate_matter", "carbon_monoxide", "sulfure_dioxide", "nitrogen_dioxide", "longitude", "latitude", "timestamp"],
         "destination_dir": "data/extracted_pollution_datasets",
@@ -83,7 +83,7 @@
         ]
     },
     "road_traffic": {
-        "processor_class": "RoadTrafficProcessor",
+        "processor_class": "DataProcessor",
         "raw_table": "road_traffic",
         "raw_field_names": ["status", "avgMeasuredTime", "avgSpeed", "extID", "medianMeasuredTime", "TIMESTAMP", "vehicleCount", "_id", "REPORT_ID"],
         "destination_dir": "data/extracted_road_traffic_datasets",
@@ -101,7 +101,7 @@
         ]
     },
     "social_events": {
-        "processor_class": "SocialEventsProcessor",
+        "processor_class": "DataProcessor",
         "raw_table": "social_events",
         "raw_field_names": ["event_type", "webcast_url", "event_details", "webcast_url_alternate", "event_date"],
         "destination_dir": "data/social_events_dataset",
@@ -117,7 +117,7 @@
         ]
     },
     "weather": {
-        "processor_class": "WeatherProcessor",
+        "processor_class": "DataProcessor",
         "raw_table": "weather",
         "raw_field_names": ["timestamp", "tempm", "wspdm", "dewptm", "hum", "pressurem", "vism", "wdird"],
         "destination_dir": "data/extracted_weather_datasets",
