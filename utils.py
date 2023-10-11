@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 import re
 import json
 import datetime
+from typing import Tuple
+import logging
+import csv
 
 
 load_dotenv()
@@ -15,6 +18,8 @@ mysql_config = {
     'database': os.getenv("SQL_DATABASE")
 }
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 def connect_to_mysql():
     return mysql.connector.connect(**mysql_config)
 
@@ -23,37 +28,39 @@ def load_config(config_path):
             config = json.load(config_file)
         return config
 
-def handle_html(message: str, no_of_fields: int, html_field_idx: int):
+def remove_html_for_sql_parsing(message: str, html_field_idx: int) -> Tuple[tuple, str]:
     """
-    Handle html field.
-    :return modified_message: tuple
+    Removing HTML content to deal with commas that interfere with 
+    splitting the message for SQL insertion
     """
-    
-    print("message before html_replace:", message)
-    print("message before html_replace type:", type(message))
-    
-    html_pattern = re.compile('<(p|h1|h2)>.*<\/(p|h1|h2)>', re.S)
-    html_field = re.search(html_pattern, message)
+        
+    html_pattern = re.compile('<(p|h1|h2|strong)[^>]*>.*<\/(p|h1|h2|strong)>\n?|nan', re.S)
+    html_content = re.search(html_pattern, message)
 
-    if html_field:
-        html_field = html_field.group(0)
+    if html_content:
+        html_content = html_content.group(0)
+        logging.debug(f"HTML_CONTENT FOUND: {html_content}")
+
     else:
-        html_field = ''  # Default value if no HTML field is found
-    
-    # print('HTML_FIELD', html_field)
+        html_content = ''  # Default value if no HTML content is found
+        logging.debug(f"HTML_CONTENT *NOT* FOUND: {html_content}")
+        
     # Remove the HTML field from the string
-    html_free_message = message.replace(html_field, '')
+    html_free_message = message.replace(html_content, '')
     # Reconstruct the original Python object i.e. tuple from the modified string
     # Split the message string into a list of fields
-    print("html_free_message:", html_free_message)
+    logging.debug(f"HTML_FREE_MESSAGE: {html_free_message}")
 
-    message_list = html_free_message.split(',')
+    # message_list = html_free_message.split(',')
+    message_list = list(csv.reader([html_free_message]))[0]
+    logging.debug(f"MESSAGE_LIST: {message_list}")
+
     # html_free_message_tuple = ast.literal_eval(html_free_message)
-    modified_message = message_list[:html_field_idx] + ['<<HTML_FIELD>>'] + message_list[html_field_idx+1:]
-    print("message after html replace:", modified_message)
+    modified_message = message_list[:html_field_idx] + ['<<HTML_CONTENT>>'] + message_list[html_field_idx+1:]
+    logging.debug(f"MESSAGE AFTER HTML SUBSTITUTION: {modified_message}")
     modified_message = tuple(modified_message)
-    print('LEN_MODIFIED_MESSAGE', len(modified_message))
-    return modified_message, html_field
+    logging.debug(f"LENGTH OF MODIFIED_MESSAGE: {len(modified_message)}")
+    return modified_message, html_content
 
 def convert_unix_timestamp(data: list, idx: int) -> list:
     """

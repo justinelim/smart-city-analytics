@@ -8,7 +8,7 @@ SELECT DISTINCT event_type FROM cultural_events
 WHERE event_type LIKE 'Rock%';
 
 SELECT * FROM library_events
-WHERE lid = 36;
+WHERE id = 8608;
 SELECT * FROM library_events;
 SELECT COUNT(*) FROM library_events;
 SELECT COUNT(distinct id) FROM library_events;

@@ -1,14 +1,15 @@
 from confluent_kafka import Consumer, Producer
 import os
 from dotenv import load_dotenv
-from utils import connect_to_mysql, load_config, handle_html, convert_unix_timestamp, publish_message
+from utils import connect_to_mysql, load_config, remove_html_for_sql_parsing, convert_unix_timestamp, publish_message
 import logging
 load_dotenv()
 # sys.path.append('/Users/justinelim/Documents/GitHub/smart-city-analytics')
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 """
-Read data from raw Kafka stream, clean and write to clean_ Kafka topic and store/persist cleaned data in MySQL db.
+Read data from raw Kafka stream, clean and write to clean_ Kafka topic and 
+store/persist cleaned data in MySQL db.
 """
 
 
@@ -17,6 +18,10 @@ class DataProcessor:
     Base class for specific dataset processors: sets the general structure
     & common functionalities that all specific dataset processors will use.
     """
+    primary_key = None
+    primary_key_idx = None
+    html_field = None
+
     def __init__(self, kafka_topic, json_config):
         self.kafka_topic = kafka_topic
         self.json_config = json_config
@@ -24,16 +29,8 @@ class DataProcessor:
         self.raw_field_names = self.topic_config["raw_field_names"]
 
     @staticmethod
-    def deserialize_kafka_message(incoming_message: bytes) -> list:
-        logging.info("Reached function deserialize_kafka_message()")
-
-        incoming_message_str = str(incoming_message.decode('utf-8'))
-        return incoming_message_str.split(',')
-
-    @staticmethod
-    def deserialize_data(incoming_message: bytes) -> str:
-        logging.info("Deserialize Kafka message")
-        return incoming_message.decode('utf-8')
+    def deserialize_data(data: bytes) -> str:
+        return data.decode('utf-8')
 
     @staticmethod
     def serialize_data(data: list) -> bytes:
@@ -45,109 +42,100 @@ class DataProcessor:
     def preprocess_for_db(self, data):
         return data  # default is no preprocessing
     
-    def get_sql_query(self, data):
-        placeholders = ', '.join(["%s"] * len(data))
+    def get_sql_query(self, data, placeholders):
+        # placeholders = ', '.join(["%s"] * len(data))
         insert_query = f"INSERT INTO clean_{self.kafka_topic} VALUES ({placeholders})"
-        return insert_query, data
+        if self.primary_key and self.html_field and self.primary_key_idx is not None:
+            update_query = f"UPDATE clean_{self.kafka_topic} SET {self.html_field} = %s WHERE {self.primary_key} = %s"
+            return insert_query, data, update_query, self.html_field, self.primary_key_idx
+        else:
+            return insert_query, data
 
 class CulturalEventsProcessor(DataProcessor):
+    primary_key = "organizer_id"
+    html_field = "event_description"
+    primary_key_idx = -4
+
     def transform_data(self, data):
         """
         Handle special processing required before inserting the data into the database:
-        (1) Parse HTML field (`event_description`)
-        (2) Handle last field (`event_type`) whose values can be comma-separated
-        (3) Convert Unix timestamp field to human-readable timestamp (`timestamp`)
+        (1) Remove HTML for SQL parsing (`event_description`)
+        (2) Handle field which has comma-separated values (`event_type`)
+        (3) Convert Unix timestamp values to human-readable timestamp (`timestamp`)
         """
         logging.debug("Reached function transform_data()")
         no_of_fields = 19
         html_field_idx = 9
-        # message_str = ', '.join(data)  # Re-create the message string from the message list
         
-        data, html_field = handle_html(self.deserialize_data(data), no_of_fields, html_field_idx)
-        
+        # Remove HTML for SQL parsing
+        data, html_field = remove_html_for_sql_parsing(self.deserialize_data(data), html_field_idx)
 
-        if len(data) > no_of_fields: # handle last field whose values are also comma-separated
+        # Handle field which has comma-separated values (`event_type`)
+        if len(data) > no_of_fields:
             # Concatenate the last columns from index 18 onwards
             last_field = ','.join(data[18:])
-            # print('LAST_FIELD', last_field)
             # Create a modified message with the concatenated field at index 18
             data = data[:18] + (last_field,)
-        # return modified_message, html_field
+
         placeholders = ', '.join(["%s"] * len(data))
 
-
-        # data = convert_unix_timestamp(self.deserialize_kafka_message(data), 5)
+        # Convert Unix timestamp values to human-readable timestamp
         data = convert_unix_timestamp(data, 5)
         logging.debug(f"data in transform_data: {data}")
         serialized_data = self.serialize_data(data)
         return serialized_data, data, placeholders, html_field
-    
-    
-    def get_sql_query(self, data, placeholders, html_field):
-        """
-        Provide appropriate SQL query e.g. insert & update
-        """
-        logging.debug("Reached function get_sql_query()")
-        # logging.debug(f"Incoming data: {data}")
-        # data = tuple(self.deserialize_data(data))
-        # modified_message, html_field = self.preprocess_for_db(data)
-
-        # placeholders = ', '.join(["%s"] * len(data))  # Update the number of placeholders
-        # print('MOD_MSG', modified_message)
-        insert_query = f"INSERT INTO clean_{self.kafka_topic} VALUES ({placeholders})"
-        # cursor.execute(query, modified_message)  # Exclude the HTML field from the modified_message
-        # conn.commit()
-        # Separate update query for HTML field - this will be handled separately after the initial insert
-        update_query = f"UPDATE clean_{self.kafka_topic} SET event_description = %s WHERE organizer_id = %s"
-        # print('HTML_FIELD', html_field)
-        # print('ORGANIZER_ID', message[-4])
-        # cursor.execute(html_query, (html_field, modified_message[-4]))  # Pass the actual HTML field and primary key organizer_id
-        return insert_query, data, update_query, html_field, -4
 
 class LibraryEventsProcessor(DataProcessor):
 
-    def preprocess_for_db(self, data):
+    def transform_data(self, data):
+        """
+        Handle special processing required before inserting the data into the database:
+        (1) Remove HTML for SQL parsing (`content`)
+        (2) Handle field which has comma-separated values (`teaser`)
+        (3) Standardize column names
+        """
+        logging.debug("Reached transform_data() method of the LibraryEventsProcessor class")
         no_of_fields = 20
+        html_field_idx = 7
 
-        message_str = ', '.join(data)  # Re-create the message string from the message list
-        modified_message, placeholders, html_field = handle_html(message_str, 7)
-
-        if len(modified_message) > no_of_fields:
+        # Remove HTML for SQL parsing
+        data, html_field = remove_html_for_sql_parsing(self.deserialize_data(data), html_field_idx)
+        
+        # Handle field which has comma-separated values (`teaser`) i.e. at index 11 or -9
+        if len(data) > no_of_fields:
             # Create a modified message with the values of the field from index 11 to the index before index -8 concatenated
-            concatenated_value = ''.join(modified_message[11:-8])
+            concatenated_value = ''.join(data[11:-8])
 
             # Create a new tuple with the modified values
-            modified_message = modified_message[:11] + (concatenated_value,) + modified_message[-8:]
-        return modified_message, html_field
-            
-    def get_sql_query(self, data):
-        modified_message, html_field = self.preprocess_for_db(data)
+            data = data[:11] + (concatenated_value,) + data[-8:]
+        
+        placeholders = ', '.join(["%s"] * len(data))
 
-        placeholders = ', '.join(["%s"] * len(data))  # Update the number of placeholders
-        # print('MODIFIED_MESSAGE', data)
-        insert_query = f"INSERT INTO clean_{self.kafka_topic} VALUES ({placeholders})"
-        # print('INSERT_QUERY', insert_query)
-
-        # Insert the HTML field separately
-        update_query = f"UPDATE clean_{self.kafka_topic} SET content = %s WHERE id = %s"  # Assuming there's an 'id' column
-        # cursor.execute(html_query, (html_field, modified_message[-2]))  # Pass the actual HTML field and message primary key index
-        return insert_query, data, update_query, html_field, -2
+        logging.debug(f"data in transform_data: {data}")
+        serialized_data = self.serialize_data(data)
+        return serialized_data, data, placeholders, html_field
+        
 class ParkingProcessor(DataProcessor):
     def transform_data(self, data: bytes):
-        data = self.enrich_parking_data(self.deserialize_kafka_message(data), 4)
-        return data
+        """
+        Handle special processing required before inserting the data into the database:
+        (1) Enrich with metadata
+        """
+        logging.debug(data)
+        primary_key, primary_key_idx = "garagecode", 4
+
+        deserialized_data = self.deserialize_data(data)
+        deserialized_data = deserialized_data.split(',')
+        enriched_data = self.enrich_parking_data(deserialized_data, primary_key_idx)
+        serialized_data = self.serialize_data(enriched_data)
+        return serialized_data, data
     
-    def enrich_parking_data(self, data: list, idx: int):
+    def enrich_parking_data(self, data: list, primary_key: str, primary_key_idx: int):
         """
         Add parking metadata to the main parking dataset.
         :data: incoming message or a list of fields
         :int:
         """
-        fields = data
-        print('FIELDS', fields)
-
-        primary_key = fields[idx]  # The primary key column `garagecode` is at index 4 in the incoming message
-        print('PRIMARY_KEY', primary_key)
 
         conn = connect_to_mysql()
         cursor = conn.cursor()
@@ -223,29 +211,6 @@ class RawDataProcessor:
         finally:
             self.consumer.close()
 
-    # def _start_processing(self):
-    #     try:
-    #         while True:
-    #             messages = self.consumer.consume(num_messages=10, timeout=1.0)
-    #             logging.debug(f"Messages value: {messages}")
-
-    #             for message in messages:
-    #                 if message is None:
-    #                     continue
-    #                 if message.error():
-    #                     print(f"Consumer error: {message.error()}")
-    #                     continue
-
-    #                 # Process the received message
-    #                 self.process_message(message)
-                
-    #             self.consumer.commit()
-
-    #     except KeyboardInterrupt:
-    #         pass
-    #     finally:
-    #         self.consumer.close()
-
     def process_message(self, message):
         """
         Dynamically selects and instantiates the correct processor.
@@ -277,7 +242,7 @@ class RawDataProcessor:
 
         publish_message(self.producer, f"clean_{topic}", serialized_data)
 
-        self.persist_data_in_mysql(processor, data, placeholders, html_field)
+        self.persist_data_in_mysql(processor, data, placeholders)
 
         # self.persist_message_in_mysql(serialized_message, topic)
 
@@ -298,26 +263,25 @@ class RawDataProcessor:
         # persist_message_in_mysql(incoming_message, message.topic())
     
 
-    def persist_data_in_mysql(self, processor, message, placeholders, html_field):
+    def persist_data_in_mysql(self, processor, message, placeholders):
 
         logging.info("Reached persist_data_in_mysql method")
         conn = connect_to_mysql()
         cursor = conn.cursor()
         
         # preprocessed_message, html_field = processor.preprocess_for_db(message)
-        query_data = processor.get_sql_query(message, placeholders, html_field)
-        
+        query_data = processor.get_sql_query(message, placeholders)
 
         # Check if there's an additional update query and html index for the data to insert
         if len(query_data) == 5:
-            insert_query, data_to_insert, update_query, html_field, html_idx = query_data
+            insert_query, data_to_insert, update_query, html_field, primary_key_idx = query_data
             logging.debug(f"Insert Query received in persist_data_in_mysql: {insert_query}")
             logging.debug(f"data_to_insert received in persist_data_in_mysql: {data_to_insert}")
 
             logging.debug(f"Update Query received in persist_data_in_mysql: {update_query}")
             cursor.execute(insert_query, data_to_insert)
             # Assuming there's an HTML field attribute in your processor
-            cursor.execute(update_query, (html_field, data_to_insert[html_idx]))
+            cursor.execute(update_query, (html_field, data_to_insert[primary_key_idx]))
         else:
             insert_query, data_to_insert = query_data
             cursor.execute(insert_query, data_to_insert)
