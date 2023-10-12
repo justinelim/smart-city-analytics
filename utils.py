@@ -7,9 +7,11 @@ import datetime
 from typing import Tuple
 import logging
 import csv
-
+from decimal import Decimal
+import datetime
 
 load_dotenv()
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 mysql_config = {
     'host': os.getenv("SQL_HOST"),
@@ -18,15 +20,29 @@ mysql_config = {
     'database': os.getenv("SQL_DATABASE")
 }
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
+# Create a Connection Pool
+conn_pool = mysql.connector.pooling.MySQLConnectionPool(pool_name="mypool",
+                                                        pool_size=10,
+                                                        **mysql_config)
 def connect_to_mysql():
-    return mysql.connector.connect(**mysql_config)
+    return conn_pool.get_connection()
 
 def load_config(config_path):
         with open(config_path, 'r') as config_file:
             config = json.load(config_file)
         return config
+
+def handle_non_serializable_types(obj):
+    """
+    Convert non-serializable types (like datetime and Decimal) 
+    to serializable types.
+    """
+    if isinstance(obj, datetime.datetime):
+        return obj.strftime('%Y-%m-%d %H:%M:%S')
+    elif isinstance(obj, Decimal):
+        return float(obj) 
+    # Add other type checks and conversions if necessary
+    return obj
 
 def remove_html_for_sql_parsing(message: str, html_field_idx: int) -> Tuple[tuple, str]:
     """
