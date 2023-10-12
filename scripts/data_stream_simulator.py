@@ -48,11 +48,11 @@ def process_dataset(dataset_name):
 dataset_list = [
     # 'cultural_events',
     # 'library_events',
-    'parking',
+    # 'parking',
     # 'pollution',
     # 'road_traffic',
     # 'social_events',
-    # 'weather',
+    'weather',
 ]
 
 threads = []

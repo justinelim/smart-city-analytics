@@ -44,39 +44,6 @@ def handle_non_serializable_types(obj):
     # Add other type checks and conversions if necessary
     return obj
 
-def remove_html_for_sql_parsing(message: str, html_field_idx: int) -> Tuple[tuple, str]:
-    """
-    Removing HTML content to deal with commas that interfere with 
-    splitting the message for SQL insertion
-    """
-        
-    html_pattern = re.compile('<(p|h1|h2|strong)[^>]*>.*<\/(p|h1|h2|strong)>\n?|nan', re.S)
-    html_content = re.search(html_pattern, message)
-
-    if html_content:
-        html_content = html_content.group(0)
-        logging.debug(f"HTML_CONTENT FOUND: {html_content}")
-
-    else:
-        html_content = ''  # Default value if no HTML content is found
-        logging.debug(f"HTML_CONTENT *NOT* FOUND: {html_content}")
-        
-    # Remove the HTML field from the string
-    html_free_message = message.replace(html_content, '')
-    # Reconstruct the original Python object i.e. tuple from the modified string
-    # Split the message string into a list of fields
-    logging.debug(f"HTML_FREE_MESSAGE: {html_free_message}")
-
-    # message_list = html_free_message.split(',')
-    message_list = list(csv.reader([html_free_message]))[0]
-    logging.debug(f"MESSAGE_LIST: {message_list}")
-
-    # html_free_message_tuple = ast.literal_eval(html_free_message)
-    modified_message = message_list[:html_field_idx] + ['<<HTML_CONTENT>>'] + message_list[html_field_idx+1:]
-    logging.debug(f"MESSAGE AFTER HTML SUBSTITUTION: {modified_message}")
-    modified_message = tuple(modified_message)
-    logging.debug(f"LENGTH OF MODIFIED_MESSAGE: {len(modified_message)}")
-    return modified_message, html_content
 
 def convert_unix_timestamp(data: list, idx: int) -> list:
     """
@@ -100,10 +67,5 @@ def convert_unix_timestamp(data: list, idx: int) -> list:
     return fields
 
 def publish_message(producer, topic: str, message: list):
-    # Publish the processed message to a Kafka topic
-    # serialized_message = ', '.join(str(field) for field in message)
-    # print('MESSAGE_TO_TOPIC', serialized_message)
-    # else:
-    #     serialized_message = message
     producer.produce(topic=topic, value=message)
     producer.flush()

@@ -22,7 +22,7 @@
         ]
     },
     "library_events": {
-        "processor_class": "LibraryEventsProcessor",
+        "processor_class": "DataProcessor",
         "raw_table": "library_events",
         "raw_field_names": ["lid", "city", "endtime", "title", "url", "price", "changed", "content", "zipcode", "library", "imageurl", "teaser", "street", "status", "longitude", "starttime", "latitude", "_id", "id", "streamtime"],
         "destination_dir": "data/library_events_dataset",

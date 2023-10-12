@@ -1,7 +1,7 @@
 from confluent_kafka import Consumer, Producer
 import os
 from dotenv import load_dotenv
-from utils import connect_to_mysql, load_config, remove_html_for_sql_parsing, convert_unix_timestamp, publish_message, handle_non_serializable_types
+from utils import connect_to_mysql, load_config, convert_unix_timestamp, publish_message, handle_non_serializable_types
 import logging
 import json
 load_dotenv()
@@ -42,7 +42,7 @@ class DataProcessor:
         return json.dumps(data, cls=DecimalEncoder)
     
     def transform_data(self, data: bytes) -> list:
-        return self.deserialize_kafka_message(data)
+        return self.deserialize_data(data)
     
     
     def get_sql_query(self, data):
@@ -54,75 +54,22 @@ class DataProcessor:
         else:
             return insert_query, data
 
-# class CulturalEventsProcessor(DataProcessor):
-#     primary_key = "organizer_id"
-#     html_field = "event_description"
-#     primary_key_idx = -4
+class CulturalEventsProcessor(DataProcessor):
+    timestamp_field_idx = 5
 
-#     def transform_data(self, data):
-#         """
-#         Handle special processing required before inserting the data into the database:
-#         (1) Remove HTML for SQL parsing (`event_description`)
-#         (2) Handle field which has comma-separated values (`event_type`)
-#         (3) Convert Unix timestamp values to human-readable timestamp (`timestamp`)
-#         """
-#         logging.debug("Reached function transform_data()")
-#         no_of_fields = 19
-#         html_field_idx = 9
+    def transform_data(self, data):
+        """
+        Handle special processing required before inserting the data into the database:
+        - Convert Unix timestamp values to human-readable timestamp (`timestamp`)
+        """
+        logging.debug("Reached function transform_data()")
         
-#         # Remove HTML for SQL parsing
-#         data, html_field = remove_html_for_sql_parsing(self.deserialize_data(data), html_field_idx)
-
-#         # Handle field which has comma-separated values (`event_type`)
-#         if len(data) > no_of_fields:
-#             # Concatenate the last columns from index 18 onwards
-#             last_field = ','.join(data[18:])
-#             # Create a modified message with the concatenated field at index 18
-#             data = data[:18] + (last_field,)
-
-#         placeholders = ', '.join(["%s"] * len(data))
-
-#         # Convert Unix timestamp values to human-readable timestamp
-#         data = convert_unix_timestamp(data, 5)
-#         logging.debug(f"data in transform_data: {data}")
-#         serialized_data = self.serialize_data(data)
-#         return serialized_data, data, placeholders, html_field
-
-# class LibraryEventsProcessor(DataProcessor):
-#     primary_key = "id"
-#     html_field = "content"
-#     primary_key_idx = -2
-
-#     def transform_data(self, data):
-#         """
-#         Handle special processing required before inserting the data into the database:
-#         (1) Remove HTML for SQL parsing (`content`)
-#         (2) Handle field which has comma-separated values (`teaser`)
-#         (3) Standardize column names
-#         """
-#         logging.debug("Reached transform_data() method of the LibraryEventsProcessor class")
-#         no_of_fields = 20
-#         html_field_idx = 7
-
-#         # Remove HTML for SQL parsing
-#         data, html_field = remove_html_for_sql_parsing(self.deserialize_data(data), html_field_idx)
-        
-#         # Handle field which has comma-separated values (`teaser`) i.e. at index 11 or -9
-#         if len(data) > no_of_fields:
-#             # Create a modified message with the values of the field from index 11 to the index before index -8 concatenated
-#             concatenated_value = ''.join(data[11:-8])
-
-#             # Create a new tuple with the modified values
-#             data = data[:11] + (concatenated_value,) + data[-8:]
-        
-#         placeholders = ', '.join(["%s"] * len(data))
-
-#         logging.debug(f"data in transform_data: {data}")
-#         serialized_data = self.serialize_data(data)
-#         return serialized_data, data, placeholders, html_field
+        deserialized_data = self.deserialize_data(data)
+        transformed_data = convert_unix_timestamp(deserialized_data, self.timestamp_field_idx)
+        logging.debug(f"data in Cultural transform_data: {transformed_data}")
+        return transformed_data #serialized_data, data, placeholders, html_field
         
 class ParkingProcessor(DataProcessor):
-    no_of_fields = 20
     primary_key = "garagecode"
     primary_key_idx = 4
 
@@ -202,11 +149,11 @@ class RawDataProcessor:
         self.topics = [
             # 'cultural_events',  # done (convert Unix timestamp field to human-readable timestamp, ran into a lot of trouble because of the HTML & event_type field values that were comma-separated)
             # 'library_events',  # done (standardize column names in MySQL, required extra processing of HTML field & concatenation issue when persisting in MySQL similar to that faced with cultural_events)
-            'parking',  # done (enrich with metadata)
+            # 'parking',  # done (enrich with metadata)
             # 'pollution',  # done
             # 'road_traffic',  # done
             # 'social_events',  # done
-            # 'weather',  # done
+            'weather',  # done
             ]
         self.consumer.subscribe(self.topics)
         self._start_processing()
@@ -251,7 +198,6 @@ class RawDataProcessor:
         processor = processor_class(topic, self.json_config)
         
         incoming_message = message.value() # incoming_message: bytes
-        # serialized_message = ', '.join(str(field) for field in incoming_message)
 
         data = processor.transform_data(incoming_message)
     
