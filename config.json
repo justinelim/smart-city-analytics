@@ -1,21 +1,21 @@
 {
     "cultural_events": {
+        "processor_class": "CulturalEventsProcessor",
         "raw_table": "cultural_events",
         "raw_field_names": ["row_id", "city", "event_name", "ticket_url", "ticket_price", "timestamp", "postal_code", "longitude", "event_id", "event_description", "venue_address", "venue_name", "event_date", "latitude", "venue_url", "organizer_id", "category", "image_url", "event_type"],
         "destination_dir": "data/cultural_events_dataset",
         "tar_file_pattern": null,
         "zip_file_pattern": null,
-        "processor_class": "CulturalEventsProcessor",
         "clean_field_names": [
             "row_id", "city", "event_name", "ticket_url",
-            "ticket_price", "timestamp", "postal_code", "longitude",
+            "avg_ticket_price", "timestamp", "postal_code", "longitude",
             "event_id", "event_description", "venue_address", "venue_name",
             "event_date", "latitude", "venue_url", "organizer_id",
             "category", "image_url", "event_type"
         ],
         "clean_field_types": [
             "INT", "STRING", "STRING", "STRING", 
-            "STRING", "DATETIME", "INT", "FLOAT", 
+            "FLOAT", "DATETIME", "INT", "FLOAT", 
             "INT", "STRING", "STRING", "STRING",
             "DATETIME", "FLOAT", "STRING", "INT",
             "STRING", "STRING", "STRING"

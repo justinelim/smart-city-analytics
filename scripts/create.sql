@@ -30,7 +30,7 @@ CREATE TABLE `clean_cultural_events` (
 `city` VARCHAR(50),
 `event_name` VARCHAR(255),
 `ticket_url` VARCHAR(255),
-`ticket_price` VARCHAR(50),
+`avg_ticket_price` DECIMAL(7, 2),
 `timestamp` DATETIME,
 `postal_code` INT,
 `longitude` DECIMAL(12, 10),
