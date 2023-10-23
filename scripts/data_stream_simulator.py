@@ -47,12 +47,12 @@ def process_dataset(dataset_name):
 # Fetch data from MySQL tables and publish to Kafka topic
 dataset_list = [
     'cultural_events',
-    # 'library_events',
-    # 'parking',
-    # 'pollution',
-    # 'road_traffic',
-    # 'social_events',
-    # 'weather',
+    'library_events',
+    'parking',
+    'pollution',
+    'road_traffic',
+    'social_events',
+    'weather',
 ]
 
 threads = []

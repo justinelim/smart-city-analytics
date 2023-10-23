@@ -5,8 +5,10 @@ import glob
 import pandas as pd
 import numpy as np
 from utils import connect_to_mysql, load_config
+import logging
 
-print('data_extractor is running')
+logger = logging.getLogger()
+
 
 class DataExtractor:
     def __init__(self, dataset_list:list, config_path:str) -> None:
@@ -15,8 +17,8 @@ class DataExtractor:
         self.config = load_config(self.config_path)
 
     def extract_data(self):
-        
         for dataset in self.dataset_list:
+            logger.info(f'Start data extraction for {dataset}..')
             self.load_raw_config(dataset)
             
             if dataset not in ("cultural_events", "library_events"):
@@ -26,6 +28,8 @@ class DataExtractor:
                 self.extract_from_csv()
             else:
                 self.extract_from_json()
+            
+            logger.info(f'{dataset} data extraction complete!')
 
     def load_raw_config(self, dataset):
         dataset_config = self.config.get(dataset, {})
@@ -61,7 +65,7 @@ class DataExtractor:
         for root, dirs, files in os.walk(self.destination_dir):
             for file_name in files:
                 file_path = os.path.join(root, file_name)
-                print('FILE_PATH', file_path)
+                logger.info(f'FILE_PATH: {file_path}')
                 df = pd.read_csv(file_path, header=None)
                 
                 # Determine if the first row matches the expected header values
@@ -140,14 +144,14 @@ class DataExtractor:
 
 def main():
     dataset_list = [
-        # "cultural_events",
-        # "library_events",
-        # "parking",
+        "cultural_events",
+        "library_events",
+        "parking",
         "parking_metadata",
-        # "pollution",
-        # "road_traffic",
-        # "social_events",
-        # "weather"
+        "pollution",
+        "road_traffic",
+        "social_events",
+        "weather"
         ]
     config_path = "config.json"
 

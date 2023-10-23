@@ -8,7 +8,9 @@ from typing import Tuple
 import logging
 import csv
 from decimal import Decimal
-import datetime
+from datetime import datetime
+import pytz
+
 
 load_dotenv()
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -69,3 +71,27 @@ def convert_unix_timestamp(data: list, idx: int) -> list:
 def publish_message(producer, topic: str, message: list):
     producer.produce(topic=topic, value=message)
     producer.flush()
+
+
+def format_date(date, timezone='Asia/Shanghai'):
+    date_formats = [
+        "%a, %d %b %Y %H:%M:%S %z",
+        "%a %d %b %Y %H:%M:%S %z"
+    ]
+    
+    if isinstance(date, str):
+        for date_format in date_formats:
+            try:
+                date = datetime.strptime(date, date_format)
+                break
+            except ValueError:
+                continue
+        else:
+            raise ValueError(f"Time data {date!r} does not match any valid format")
+    
+    tz = pytz.timezone(timezone)
+    if date.tzinfo is None or date.tzinfo.utcoffset(date) is None:
+        date = tz.localize(date)
+    
+    utc_date = date.astimezone(pytz.UTC)
+    return utc_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')

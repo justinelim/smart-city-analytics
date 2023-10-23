@@ -8,3 +8,8 @@ class ConfigLoader:
         config = load_config(self.config_path)
         dataset_config = config.get(dataset, {})
         return dataset_config.get('clean_field_names', []), dataset_config.get('clean_field_types', [])
+
+    def get_processor_class_name(self, dataset):
+        config = load_config(self.config_path)
+        dataset_config = config.get(dataset, {})
+        return dataset_config.get('processor_class')

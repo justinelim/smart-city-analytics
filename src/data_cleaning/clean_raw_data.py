@@ -18,10 +18,10 @@ class DecimalEncoder(json.JSONEncoder):
         return handle_non_serializable_types(obj)
 
 
-class DataProcessor:
+class DataCleaner:
     """
-    Base class for specific dataset processors: sets the general structure
-    & common functionalities that all specific dataset processors will use.
+    Base class for specific dataset cleaning processors: sets the general structure
+    & common functionalities that all specific dataset cleaning processors will use.
     """
     primary_key = None
     primary_key_idx = None
@@ -53,7 +53,7 @@ class DataProcessor:
         else:
             return insert_query, data
 
-class CulturalEventsProcessor(DataProcessor):
+class CulturalEventsCleaner(DataCleaner):
     ticket_price_field_idx = 4
     timestamp_field_idx = 5
 
@@ -99,7 +99,7 @@ class CulturalEventsProcessor(DataProcessor):
         
         return data
         
-class ParkingProcessor(DataProcessor):
+class ParkingCleaner(DataCleaner):
     primary_key = "garagecode"
     primary_key_idx = 4
 
@@ -108,7 +108,7 @@ class ParkingProcessor(DataProcessor):
         Handle special processing required before inserting the data into the database:
         (1) Enrich with metadata
         """
-        logging.debug("Reached transform_data() method of the ParkingProcessor class")
+        logging.debug("Reached transform_data() method of the ParkingCleaner class")
 
         deserialized_data = self.deserialize_data(data)
         
@@ -156,12 +156,12 @@ class ParkingProcessor(DataProcessor):
             return data  # If there's no additional data to enrich with, return the original message in byte format.
 
 
-class RawDataProcessor:
+class RawDataCleaner:
     """
     Main orchestrator:
     - consumes raw messages from Kafka topics
-    - decides which dataset-specific processor to use
-    - processes the message using that processor
+    - decides which dataset-specific cleaning processor to use
+    - processes the message using that cleaner
     - publishes cleaned data back to Kafka
     - stores cleaned data in MySQL db
     """
@@ -177,76 +177,77 @@ class RawDataProcessor:
         self.producer = Producer(self.kafka_config)
         self.json_config = load_config(config_path="config.json")
         self.topics = [
-            'cultural_events',  # done (convert Unix timestamp field to human-readable timestamp, ran into a lot of trouble because of the HTML & event_type field values that were comma-separated)
+            # 'cultural_events',  # done (convert Unix timestamp field to human-readable timestamp, ran into a lot of trouble because of the HTML & event_type field values that were comma-separated)
             # 'library_events',  # done (standardize column names in MySQL, required extra processing of HTML field & concatenation issue when persisting in MySQL similar to that faced with cultural_events)
-            # 'parking',  # done (enrich with metadata)
-            # 'pollution',  # done
-            # 'road_traffic',  # done
-            # 'social_events',  # done
-            # 'weather',  # done
+            # 'parking',
+            # 'pollution',
+            # 'road_traffic',
+            'social_events',
+            # 'weather',
             ]
         self.consumer.subscribe(self.topics)
-        self._start_processing()
+        self._start_cleaning()
 
 
-    def _start_processing(self):
+    def _start_cleaning(self):
         try:
             while True:
                 message = self.consumer.poll(1.0)
                 if message is None:
+                    # print('message is None!')
                     continue
                 if message.error():
                     logging.error(f"Error while consuming message: {message.error()}")
                 else:
                     logging.debug(f"Consumed message with key {message.key()} and value {message.value()}")
-                    self.process_message(message)
+                    self.clean_message(message)
         except KeyboardInterrupt:
             pass
         finally:
             self.consumer.close()
 
-    def process_message(self, message):
+    def clean_message(self, message):
         """
-        Dynamically selects and instantiates the correct processor.
+        Dynamically selects and instantiates the correct cleaner.
         """
-        logging.info("Reached function process_message()")
+        logging.info("Reached function clean_message()")
 
         topic = message.topic()
-        logging.debug(f"Processing message from topic: {topic}")
+        logging.debug(f"Cleaning message from topic: {topic}")
 
         try:
             # processor_class_name = self.topic_config[topic]["processor_class"]
-            processor_config = self.json_config[topic]  # Assuming self.config contains the entire loaded configuration
-            processor_class_name = processor_config["processor_class"]
+            cleaner_config = self.json_config[topic]
+            cleaner_class_name = cleaner_config["cleaner_class"]
 
         except KeyError as e:
-            logging.error(f"Failed to get processor class for topic {topic}. Error: {e}")
+            logging.error(f"Failed to get cleaner class for topic {topic}. Error: {e}")
             return  # Return early if there's an error
         
         # Dynamically instantiate the correct processor using its class name
-        processor_class = globals()[processor_class_name]
-        processor = processor_class(topic, self.json_config)
+        cleaner_class = globals()[cleaner_class_name]
+        cleaner = cleaner_class(topic, self.json_config)
         
         incoming_message = message.value() # incoming_message: bytes
 
-        data = processor.transform_data(incoming_message)
+        data = cleaner.transform_data(incoming_message)
     
         # logging.debug(f"Data: {data}")
         # logging.debug(f"Type(Data): {type(data)}")
 
-        publish_message(self.producer, f"clean_{topic}", processor.serialize_data(data))
-        logging.debug(f"Serialized Data: {processor.serialize_data(data)}")
+        publish_message(self.producer, f"clean_{topic}", cleaner.serialize_data(data))
+        logging.debug(f"Serialized Data: {cleaner.serialize_data(data)}")
 
-        self.persist_data_in_mysql(processor, data)
+        self.persist_data_in_mysql(cleaner, data)
 
-    def persist_data_in_mysql(self, processor, message):
+    def persist_data_in_mysql(self, cleaner, message):
 
         logging.info("Reached persist_data_in_mysql method")
         conn = connect_to_mysql()
         cursor = conn.cursor()
         
         # preprocessed_message, html_field = processor.preprocess_for_db(message)
-        query_data = processor.get_sql_query(message)
+        query_data = cleaner.get_sql_query(message)
 
         # Check if there's an additional update query and html index for the data to insert
         if len(query_data) == 5:
@@ -256,7 +257,7 @@ class RawDataProcessor:
 
             logging.debug(f"Update Query received in persist_data_in_mysql: {update_query}")
             cursor.execute(insert_query, data_to_insert)
-            # Assuming there's an HTML field attribute in your processor
+            # Assuming there's an HTML field attribute in the cleaner
             cursor.execute(update_query, (html_field, data_to_insert[primary_key_idx]))
         else:
             insert_query, data_to_insert = query_data
@@ -270,4 +271,5 @@ class RawDataProcessor:
 
 
 def main():
-    processor = RawDataProcessor()
+    logging.debug('Start cleaning..')
+    cleaner = RawDataCleaner()

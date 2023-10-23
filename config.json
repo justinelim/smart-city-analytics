@@ -1,6 +1,7 @@
 {
     "cultural_events": {
-        "processor_class": "CulturalEventsProcessor",
+        "cleaner_class": "CulturalEventsCleaner",
+        "processor_class": "CulturalEventsDataProcessor",
         "raw_table": "cultural_events",
         "raw_field_names": ["row_id", "city", "event_name", "ticket_url", "ticket_price", "timestamp", "postal_code", "longitude", "event_id", "event_description", "venue_address", "venue_name", "event_date", "latitude", "venue_url", "organizer_id", "category", "image_url", "event_type"],
         "destination_dir": "data/cultural_events_dataset",
@@ -22,29 +23,33 @@
         ]
     },
     "library_events": {
-        "processor_class": "DataProcessor",
+        "cleaner_class": "DataCleaner",
+        "processor_class": "LibraryEventsDataProcessor",
         "raw_table": "library_events",
         "raw_field_names": ["lid", "city", "endtime", "title", "url", "price", "changed", "content", "zipcode", "library", "imageurl", "teaser", "street", "status", "longitude", "starttime", "latitude", "_id", "id", "streamtime"],
         "destination_dir": "data/library_events_dataset",
         "tar_file_pattern": null,
         "zip_file_pattern": null,
         "clean_field_names": [
-            "row_id", "city", "event_name", "ticket_url",
-            "ticket_price", "timestamp", "postal_code", "longitude",
-            "event_id", "event_description", "venue_address", "venue_name",
-            "event_date", "latitude", "venue_url", "organizer_id",
-            "category", "image_url", "event_type"
+            "library_id", "city", "end_time", "title",
+            "url", "price", "changed", "content",
+            "zipcode", "library", "image_url", "teaser",
+            "street", "status", "longitude", "start_time",
+            "latitude", "_id", "id", "stream_time"
         ],
         "clean_field_types": [
-            "INT", "STRING", "INT", "INT", 
-            "STRING", "STRING", "STRING", "INT", 
-            "STRING", "STRING", "FLOAT", "FLOAT"
+            "INT", "STRING", "DATETIME", "STRING", 
+            "STRING", "STRING", "STRING", "STRING", 
+            "STRING", "STRING", "STRING", "STRING",
+            "STRING", "STRING", "FLOAT", "DATETIME",
+            "FLOAT", "STRING", "STRING", "STRING"
         ]
     },
     "parking": {
-        "processor_class": "ParkingProcessor",
+        "cleaner_class": "ParkingCleaner",
+        "processor_class": "ParkingDataProcessor",
         "raw_table": "parking",
-        "raw_field_names": ["vehiclecount", "updatetime", "totalspaces", "garagecode", "streamtime"],
+        "raw_field_names": ["vehiclecount", "updatetime", "_id", "totalspaces", "garagecode", "streamtime"],
         "destination_dir": "data/parking_dataset",
         "tar_file_pattern": null,
         "zip_file_pattern": null,
@@ -67,14 +72,15 @@
         "zip_file_pattern": null
     },
     "pollution": {
-        "processor_class": "DataProcessor",
+        "cleaner_class": "DataCleaner",
+        "processor_class": "PollutionDataProcessor",
         "raw_table": "pollution",
         "raw_field_names": ["ozone", "particullate_matter", "carbon_monoxide", "sulfure_dioxide", "nitrogen_dioxide", "longitude", "latitude", "timestamp"],
         "destination_dir": "data/extracted_pollution_datasets",
         "tar_file_pattern": "data/citypulse_pollution_*.tar.gz",
         "zip_file_pattern": null,
         "clean_field_names": [
-            "ozone", "particullate_matter", "carbon_monoxide", "sulfure_dioxide",
+            "ozone", "particulate_matter", "carbon_monoxide", "sulfur_dioxide",
             "nitrogen_dioxide", "longitude", "latitude", "timestamp"
         ],
         "clean_field_types": [
@@ -83,7 +89,8 @@
         ]
     },
     "road_traffic": {
-        "processor_class": "DataProcessor",
+        "cleaner_class": "DataCleaner",
+        "processor_class": "RoadTrafficDataProcessor",
         "raw_table": "road_traffic",
         "raw_field_names": ["status", "avgMeasuredTime", "avgSpeed", "extID", "medianMeasuredTime", "TIMESTAMP", "vehicleCount", "_id", "REPORT_ID"],
         "destination_dir": "data/extracted_road_traffic_datasets",
@@ -95,13 +102,14 @@
             "report_id"
         ],
         "clean_field_types": [
-            "STRING", "DATETIME", "INT", "INT",
-            "DATETIME", "DATETIME", "INT", "INT", 
+            "STRING", "INT", "INT", "INT",
+            "INT", "DATETIME", "INT", "INT", 
             "INT"
         ]
     },
     "social_events": {
-        "processor_class": "DataProcessor",
+        "cleaner_class": "DataCleaner",
+        "processor_class": "SocialEventsDataProcessor",
         "raw_table": "social_events",
         "raw_field_names": ["event_type", "webcast_url", "event_details", "webcast_url_alternate", "event_date"],
         "destination_dir": "data/social_events_dataset",
@@ -112,12 +120,13 @@
             "event_date"
         ],
         "clean_field_types": [
-            "STRING", "STRING", "STRING", "STRING", "STRING",
-            "DATETIME"
+            "STRING", "STRING", "STRING", "STRING",
+            "STRING"
         ]
     },
     "weather": {
-        "processor_class": "DataProcessor",
+        "cleaner_class": "DataCleaner",
+        "processor_class": "WeatherDataProcessor",
         "raw_table": "weather",
         "raw_field_names": ["timestamp", "tempm", "wspdm", "dewptm", "hum", "pressurem", "vism", "wdird"],
         "destination_dir": "data/extracted_weather_datasets",
