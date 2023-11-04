@@ -25,45 +25,39 @@ def read_offset_from_database(dataset_name, default_offset='0'):
     if dataset_name == "weather":
         # Set default timestamp for weather dataset before try-except
         default_offset = '1970-01-01 00:00:01'
-
+    
+    query = "SELECT last_offset FROM processed_offsets WHERE dataset_name = %s"
     try:
-        local_conn = connect_to_mysql()
-        local_cursor = local_conn.cursor()
-        query = "SELECT last_offset FROM processed_offsets WHERE dataset_name = %s"
-        local_cursor.execute(query, (dataset_name,))
-        result = local_cursor.fetchone()
-        return result[0] if result else default_offset
+        with connect_to_mysql() as local_conn, local_conn.cursor() as local_cursor:
+            local_cursor.execute(query, (dataset_name,))
+            result = local_cursor.fetchone()
+            return result[0] if result else default_offset
     except Exception as e:
         print(f"Error reading offset from database: {e}")
         return default_offset
-    finally:
-        if local_cursor:
-            local_cursor.close()
-        if local_conn:
-            local_conn.close()
 
 def update_offset_in_database(dataset_name, primary_key, new_offset):
     # Updates the last offset processed for the given dataset
     # Stores the offset in the table 
-    local_conn = connect_to_mysql()
-    local_cursor = local_conn.cursor()
+    current_offset = read_offset_from_database(dataset_name)
     try:
-        current_offset = read_offset_from_database(dataset_name)
-        if current_offset == '0' or current_offset == '1970-01-01 00:00:01':
-            query = "INSERT INTO processed_offsets (dataset_name, primary_key, last_offset) VALUES (%s, %s, %s)"
-            local_cursor.execute(query, (dataset_name, primary_key, new_offset,))
-            
-        else:
-            query = "UPDATE processed_offsets SET last_offset = %s WHERE dataset_name = %s"
-            local_cursor.execute(query, (new_offset, dataset_name,))
-        local_conn.commit()  # Commit the changes to the database
+        with connect_to_mysql() as local_conn, local_conn.cursor() as local_cursor:
+            if current_offset in ('0', '1970-01-01 00:00:01'):
+                query = """
+                    INSERT INTO processed_offsets (dataset_name, primary_key, last_offset)
+                    VALUES (%s, %s, %s)
+                """
+                local_cursor.execute(query, (dataset_name, primary_key, new_offset))
+            else:
+                query = """
+                    UPDATE processed_offsets
+                    SET last_offset = %s
+                    WHERE dataset_name = %s
+                """
+                local_cursor.execute(query, (new_offset, dataset_name))
+            local_conn.commit()
     except Exception as e:
-        print(f"Error updating offset in database: {e}")
-    finally:
-        if local_cursor:
-            local_cursor.close()
-        if local_conn:
-            local_conn.close()
+        logging.error(f"Error updating offset in database: {e}")
 
 async def process_dataset(dataset_name, dataset_config):
     local_conn = connect_to_mysql()
@@ -82,14 +76,14 @@ async def process_dataset(dataset_name, dataset_config):
 
 
     for record in records:
-        logging.debug(f"Record: {record}")
+        # logging.debug(f"Record: {record}")
         serialized_record = tuple(map(handle_non_serializable_types, record))
-        logging.debug(f"Serialized record: {serialized_record} for table {dataset_name}")
+        # logging.debug(f"Serialized record: {serialized_record} for table {dataset_name}")
         serialized_json = json.dumps(serialized_record)
         logging.debug(f"Serialized json: {serialized_json} for table {dataset_name}")
 
         # publish_message(producer, dataset_name, serialized_json)
-        logging.debug(f"Attempting to publish record: {serialized_json} to topic {dataset_name}")
+        # logging.debug(f"Attempting to publish record: {serialized_json} to topic {dataset_name}")
         try:
             publish_message(producer, dataset_name, serialized_json)
         except Exception as e:
@@ -119,4 +113,4 @@ async def main():
     await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
-    asyncio.run(main()) #TODO: What happens when it reaches the end of the table? Does the program automatically terminate?
+    asyncio.run(main()) #TODO: How to trigger clean_raw_data.py once we get some data into the kafka topics as a result of running data stream sim
