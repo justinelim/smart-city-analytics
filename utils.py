@@ -3,12 +3,12 @@ import mysql.connector
 from dotenv import load_dotenv
 import re
 import json
-import datetime
+import datetime as dt
 from typing import Tuple
 import logging
 import csv
 from decimal import Decimal
-from datetime import datetime
+# from datetime import datetime
 import pytz
 
 
@@ -39,12 +39,16 @@ def handle_non_serializable_types(obj):
     Convert non-serializable types (like datetime and Decimal) 
     to serializable types.
     """
-    if isinstance(obj, datetime.datetime):
-        return obj.strftime('%Y-%m-%d %H:%M:%S')
-    elif isinstance(obj, Decimal):
-        return float(obj) 
-    # Add other type checks and conversions if necessary
-    return obj
+    try:
+        if isinstance(obj, dt.datetime):
+            return obj.strftime('%Y-%m-%d %H:%M:%S')
+        elif isinstance(obj, Decimal):
+            return float(obj)
+        # Add other type checks and conversions if necessary
+        return obj
+    except Exception as e:
+        logging.error(f"Error handling non-serializable types: {e}")
+        return None  # or handle the error as needed
 
 
 def convert_unix_timestamp(data: list, idx: int) -> list:
@@ -57,12 +61,12 @@ def convert_unix_timestamp(data: list, idx: int) -> list:
     # fields = data
     # fields = deserialize_kafka_message_bytes(incoming_message)  # fields: list
     try:
-        dt = datetime.datetime.fromtimestamp(int(fields[idx]))
+        dt = dt.datetime.fromtimestamp(int(fields[idx]))
     except ValueError:
         # Account for the case where the value in event_name is comma-separated (e.g. Rasmus Skov Borring, soloklaver)
         concatenated_value = fields[2] + fields[3]
         fields = fields[:2] + [concatenated_value] + fields[4:]
-        dt = datetime.datetime.fromtimestamp(int(fields[idx]))
+        dt = dt.datetime.fromtimestamp(int(fields[idx]))
 
     fields[idx] = dt.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -82,7 +86,7 @@ def format_date(date, timezone='Asia/Shanghai'):
     if isinstance(date, str):
         for date_format in date_formats:
             try:
-                date = datetime.strptime(date, date_format)
+                date = dt.strptime(date, date_format)
                 break
             except ValueError:
                 continue

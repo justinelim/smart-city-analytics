@@ -4,6 +4,7 @@
         "processor_class": "CulturalEventsDataProcessor",
         "raw_table": "cultural_events",
         "raw_field_names": ["row_id", "city", "event_name", "ticket_url", "ticket_price", "timestamp", "postal_code", "longitude", "event_id", "event_description", "venue_address", "venue_name", "event_date", "latitude", "venue_url", "organizer_id", "category", "image_url", "event_type"],
+        "primary_key": "event_id",
         "destination_dir": "data/cultural_events_dataset",
         "tar_file_pattern": null,
         "zip_file_pattern": null,
@@ -27,6 +28,7 @@
         "processor_class": "LibraryEventsDataProcessor",
         "raw_table": "library_events",
         "raw_field_names": ["lid", "city", "endtime", "title", "url", "price", "changed", "content", "zipcode", "library", "imageurl", "teaser", "street", "status", "longitude", "starttime", "latitude", "_id", "id", "streamtime"],
+        "primary_key": "id",
         "destination_dir": "data/library_events_dataset",
         "tar_file_pattern": null,
         "zip_file_pattern": null,
@@ -50,6 +52,7 @@
         "processor_class": "ParkingDataProcessor",
         "raw_table": "parking",
         "raw_field_names": ["vehiclecount", "updatetime", "_id", "totalspaces", "garagecode", "streamtime"],
+        "primary_key": "_id",
         "destination_dir": "data/parking_dataset",
         "tar_file_pattern": null,
         "zip_file_pattern": null,
@@ -67,6 +70,7 @@
     "parking_metadata": {
         "raw_table": "parking_metadata",
         "raw_field_names": ["garagecode", "city", "postalcode", "street", "housenumber", "latitude", "longitude"],
+        "primary_key": "",
         "destination_dir": "data/parking_metadata",
         "tar_file_pattern": null,
         "zip_file_pattern": null
@@ -75,17 +79,20 @@
         "cleaner_class": "DataCleaner",
         "processor_class": "PollutionDataProcessor",
         "raw_table": "pollution",
-        "raw_field_names": ["ozone", "particullate_matter", "carbon_monoxide", "sulfure_dioxide", "nitrogen_dioxide", "longitude", "latitude", "timestamp"],
+        "raw_field_names": ["ozone", "particullate_matter", "carbon_monoxide", "sulfure_dioxide", "nitrogen_dioxide", "longitude", "latitude", "timestamp", "id"],
+        "primary_key": "id",
         "destination_dir": "data/extracted_pollution_datasets",
         "tar_file_pattern": "data/citypulse_pollution_*.tar.gz",
         "zip_file_pattern": null,
         "clean_field_names": [
             "ozone", "particulate_matter", "carbon_monoxide", "sulfur_dioxide",
-            "nitrogen_dioxide", "longitude", "latitude", "timestamp"
+            "nitrogen_dioxide", "longitude", "latitude", "timestamp",
+            "id"
         ],
         "clean_field_types": [
             "INT", "INT", "INT", "INT",
-            "INT", "FLOAT", "FLOAT", "DATETIME"
+            "INT", "FLOAT", "FLOAT", "DATETIME",
+            "INT"
         ]
     },
     "road_traffic": {
@@ -93,6 +100,7 @@
         "processor_class": "RoadTrafficDataProcessor",
         "raw_table": "road_traffic",
         "raw_field_names": ["status", "avgMeasuredTime", "avgSpeed", "extID", "medianMeasuredTime", "TIMESTAMP", "vehicleCount", "_id", "REPORT_ID"],
+        "primary_key": "_id",
         "destination_dir": "data/extracted_road_traffic_datasets",
         "tar_file_pattern": "data/citypulse_traffic_*.tar.gz",
         "zip_file_pattern": "data/citypulse_traffic_*.zip",
@@ -111,17 +119,18 @@
         "cleaner_class": "DataCleaner",
         "processor_class": "SocialEventsDataProcessor",
         "raw_table": "social_events",
-        "raw_field_names": ["event_type", "webcast_url", "event_details", "webcast_url_alternate", "event_date"],
+        "raw_field_names": ["event_type", "webcast_url", "event_details", "webcast_url_alternate", "event_date", "id"],
+        "primary_key": "id",
         "destination_dir": "data/social_events_dataset",
         "tar_file_pattern": null,
         "zip_file_pattern": null,
         "clean_field_names": [
             "event_type", "webcast_url", "event_details", "webcast_url_alternate",
-            "event_date"
+            "event_date", "id"
         ],
         "clean_field_types": [
             "STRING", "STRING", "STRING", "STRING",
-            "STRING"
+            "STRING", "INT"
         ]
     },
     "weather": {
@@ -129,6 +138,7 @@
         "processor_class": "WeatherDataProcessor",
         "raw_table": "weather",
         "raw_field_names": ["timestamp", "tempm", "wspdm", "dewptm", "hum", "pressurem", "vism", "wdird"],
+        "primary_key": "timestamp",
         "destination_dir": "data/extracted_weather_datasets",
         "tar_file_pattern": "data/raw_weather_data_*.tar.gz",
         "zip_file_pattern": "data/raw_weather_data_*.zip",

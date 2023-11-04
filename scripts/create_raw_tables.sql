@@ -1,6 +1,14 @@
 USE smart_city;
 SHOW VARIABLES LIKE 'secure_file_priv';
 
+/* Processed Offsets Table */
+DROP TABLE IF EXISTS `processed_offsets`;
+CREATE TABLE `processed_offsets` (
+`dataset_name` VARCHAR(20) PRIMARY KEY,
+`primary_key` VARCHAR(10),
+`last_offset` VARCHAR(20)
+);
+
 /* Raw data */
 DROP TABLE IF EXISTS `cultural_events`;
 CREATE TABLE `cultural_events` (
@@ -82,6 +90,9 @@ CREATE TABLE `pollution` (
 `timestamp` TIMESTAMP
 );
 
+ALTER TABLE pollution
+ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY;
+
 DROP TABLE IF EXISTS `road_traffic`;
 CREATE TABLE `road_traffic` (
 `status` CHAR(10),
@@ -104,6 +115,9 @@ CREATE TABLE `social_events` (
 `event_date` VARCHAR(255)
 );
 
+ALTER TABLE social_events
+ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY;
+
 DROP TABLE IF EXISTS `weather`;
 CREATE TABLE `weather` (
 `timestamp` TIMESTAMP,
@@ -115,3 +129,13 @@ CREATE TABLE `weather` (
 `vism` VARCHAR(255),
 `wdird` VARCHAR(255)
 );
+
+/* Create indexing on primary keys to improve performance */
+CREATE INDEX idx_event_id ON cultural_events (event_id);
+CREATE INDEX idx_id ON library_events (id);
+CREATE INDEX idx__id ON parking (_id);
+CREATE INDEX idx_id ON pollution (id);
+CREATE INDEX idx__id ON road_traffic (_id);
+CREATE INDEX idx_id ON social_events (id);
+CREATE INDEX idx_timestamp ON weather (timestamp);
+
