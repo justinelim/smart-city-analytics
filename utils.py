@@ -6,10 +6,11 @@ import json
 import datetime as dt
 from typing import Tuple
 import logging
-import csv
 from decimal import Decimal
 # from datetime import datetime
 import pytz
+import asyncio
+import aiomysql
 
 
 load_dotenv()
@@ -19,15 +20,23 @@ mysql_config = {
     'host': os.getenv("SQL_HOST"),
     'user': os.getenv("SQL_USERNAME"),
     'password': os.getenv("SQL_PASSWORD"),
-    'database': os.getenv("SQL_DATABASE")
+    'db': os.getenv("SQL_DATABASE")
 }
 
-# Create a Connection Pool
-conn_pool = mysql.connector.pooling.MySQLConnectionPool(pool_name="mypool",
-                                                        pool_size=10,
-                                                        **mysql_config)
-def connect_to_mysql():
-    return conn_pool.get_connection()
+# # Create a Connection Pool
+# conn_pool = mysql.connector.pooling.MySQLConnectionPool(pool_name="mypool",
+#                                                         pool_size=10,
+#                                                         **mysql_config)
+
+
+async def create_pool(): # async context manager for the pool
+    return await aiomysql.create_pool(minsize=1, maxsize=10, **mysql_config)
+
+
+async def connect_to_mysql():
+    pool = await create_pool()
+    # The connection is acquired and should be used within an async with statement
+    return pool
 
 def load_config(config_path):
         with open(config_path, 'r') as config_file:
