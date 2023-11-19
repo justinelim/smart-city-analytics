@@ -1,6 +1,14 @@
 USE smart_city;
 SHOW VARIABLES LIKE 'secure_file_priv';
 
+/* Streamed Offsets Table */
+DROP TABLE IF EXISTS `streamed_offsets`;
+CREATE TABLE `streamed_offsets` (
+`dataset_name` VARCHAR(20) PRIMARY KEY,
+`primary_key` VARCHAR(10),
+`last_offset` VARCHAR(20)
+);
+
 /* Processed Offsets Table */
 DROP TABLE IF EXISTS `processed_offsets`;
 CREATE TABLE `processed_offsets` (

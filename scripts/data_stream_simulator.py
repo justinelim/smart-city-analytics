@@ -25,38 +25,38 @@ async def read_offset_from_database(dataset_name, default_offset='0'):
         # Set default timestamp for weather dataset before try-except
         default_offset = '1970-01-01 00:00:01'
     
-    query = "SELECT last_offset FROM processed_offsets WHERE dataset_name = %s"
+    query = "SELECT last_offset FROM streamed_offsets WHERE dataset_name = %s"
     try:
         pool = await connect_to_mysql()    
-        async with pool.acquire() as conn, conn.cursor() as cur:
-            await cur.execute(query, (dataset_name,))
-            result = await cur.fetchone()
+        async with pool.acquire() as conn, conn.cursor() as cursor:
+            await cursor.execute(query, (dataset_name,))
+            result = await cursor.fetchone()
             return result[0] if result else default_offset
     except Exception as e:
         print(f"Error reading offset from database: {e}")
         return default_offset
 
 async def update_offset_in_database(dataset_name, primary_key, new_offset):
-    # Updates the last offset processed for the given dataset
+    # Updates the last offset streamed for the given dataset
     # Stores the offset in the table 
     current_offset = await read_offset_from_database(dataset_name)
     try:
         pool = await connect_to_mysql()    
         
-        async with pool.acquire() as conn, conn.cursor() as cur:
+        async with pool.acquire() as conn, conn.cursor() as cursor:
             if current_offset in ('0', '1970-01-01 00:00:01'):
                 query = """
-                    INSERT INTO processed_offsets (dataset_name, primary_key, last_offset)
+                    INSERT INTO streamed_offsets (dataset_name, primary_key, last_offset)
                     VALUES (%s, %s, %s)
                 """
-                await cur.execute(query, (dataset_name, primary_key, new_offset))
+                await cursor.execute(query, (dataset_name, primary_key, new_offset))
             else:
                 query = """
-                    UPDATE processed_offsets
+                    UPDATE streamed_offsets
                     SET last_offset = %s
                     WHERE dataset_name = %s
                 """
-                await cur.execute(query, (new_offset, dataset_name))
+                await cursor.execute(query, (new_offset, dataset_name))
             await conn.commit()
     except Exception as e:
         logging.error(f"Error updating offset in database: {e}")
@@ -64,7 +64,7 @@ async def update_offset_in_database(dataset_name, primary_key, new_offset):
 async def process_dataset(dataset_name, dataset_config):
     pool = await connect_to_mysql()    
         
-    async with pool.acquire() as conn, conn.cursor() as cur:
+    async with pool.acquire() as conn, conn.cursor() as cursor:
 
         # Read offset from database
         offset = await read_offset_from_database(dataset_name)
@@ -73,8 +73,8 @@ async def process_dataset(dataset_name, dataset_config):
         logging.debug(f"Offset: {offset} for table {dataset_name}")
         query = f"SELECT * FROM {dataset_name} WHERE {primary_key} > %s ORDER BY {primary_key}"
         logging.debug(f"### Query to run: {query}")
-        await cur.execute(query, (offset,))  # Pass the offset as a parameter
-        records = await cur.fetchall()
+        await cursor.execute(query, (offset,))  # Pass the offset as a parameter
+        records = await cursor.fetchall()
         logging.debug(f"Number of records fetched: {len(records)}")
 
 

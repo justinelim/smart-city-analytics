@@ -2,7 +2,7 @@ USE smart_city;
 
 -- SELECT COUNT(DISTINCT organizer_id) FROM cultural_events;
 -- WHERE event_escription NOT LIKE '<p>%';
-SELECT * FROM processed_offsets;
+
 SELECT * FROM cultural_events ORDER BY event_id;
 -- WHERE organizer_id = 334; 
 SELECT DISTINCT event_type FROM cultural_events
@@ -14,6 +14,7 @@ SELECT * FROM library_events;
 SELECT COUNT(*) FROM library_events;
 SELECT COUNT(distinct id) FROM library_events;
 
+SELECT * FROM streamed_offsets;
 SELECT * FROM processed_offsets;
 
 SELECT * FROM cultural_events; -- row count: 100

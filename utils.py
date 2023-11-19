@@ -1,5 +1,4 @@
 import os
-import mysql.connector
 from dotenv import load_dotenv
 import re
 import json
@@ -9,9 +8,7 @@ import logging
 from decimal import Decimal
 # from datetime import datetime
 import pytz
-import asyncio
 import aiomysql
-
 
 load_dotenv()
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -23,15 +20,9 @@ mysql_config = {
     'db': os.getenv("SQL_DATABASE")
 }
 
-# # Create a Connection Pool
-# conn_pool = mysql.connector.pooling.MySQLConnectionPool(pool_name="mypool",
-#                                                         pool_size=10,
-#                                                         **mysql_config)
-
 
 async def create_pool(): # async context manager for the pool
     return await aiomysql.create_pool(minsize=1, maxsize=10, **mysql_config)
-
 
 async def connect_to_mysql():
     pool = await create_pool()
@@ -42,6 +33,49 @@ def load_config(config_path):
         with open(config_path, 'r') as config_file:
             config = json.load(config_file)
         return config
+
+async def read_offset_from_database(pool, dataset_name, offset_table_name, default_offset='0'):
+    # Returns the last offset processed (e.g. streamed or cleaned) for the given dataset
+    # Stores and reads the offset from a table.
+    if dataset_name == "weather":
+        # Set default timestamp for weather dataset before try-except
+        default_offset = '1970-01-01 00:00:01'
+    
+    query = f"SELECT last_offset FROM {offset_table_name} WHERE dataset_name = %s"
+    try:
+        # pool = await connect_to_mysql()    
+        async with pool.acquire() as conn, conn.cursor() as cursor:
+            await cursor.execute(query, (dataset_name,))
+            result = await cursor.fetchone()
+            return result[0] if result else default_offset
+    except Exception as e:
+        print(f"Error reading offset from database: {e}")
+        return default_offset
+
+async def update_offset_in_database(pool, dataset_name, offset_table_name, primary_key, new_offset):
+    # Updates the last offset processed (e.g. streamed or cleaned) for the given dataset
+    # Stores the offset in the table 
+    current_offset = await read_offset_from_database(pool, dataset_name, offset_table_name)
+    try:
+        pool = await connect_to_mysql()    
+        
+        async with pool.acquire() as conn, conn.cursor() as cursor:
+            if current_offset in ('0', '1970-01-01 00:00:01'):
+                query = f"""
+                    INSERT INTO {offset_table_name} (dataset_name, primary_key, last_offset)
+                    VALUES (%s, %s, %s)
+                """
+                await cursor.execute(query, (dataset_name, primary_key, new_offset))
+            else:
+                query = f"""
+                    UPDATE {offset_table_name}
+                    SET last_offset = %s
+                    WHERE dataset_name = %s
+                """
+                await cursor.execute(query, (new_offset, dataset_name))
+            await conn.commit()
+    except Exception as e:
+        logging.error(f"Error updating offset in database: {e}")
 
 def handle_non_serializable_types(obj):
     """
@@ -67,8 +101,6 @@ def convert_unix_timestamp(data: list, idx: int) -> list:
         """
     fields = list(data)  # Convert data to a list
 
-    # fields = data
-    # fields = deserialize_kafka_message_bytes(incoming_message)  # fields: list
     try:
         dt = dt.datetime.fromtimestamp(int(fields[idx]))
     except ValueError:
