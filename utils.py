@@ -43,7 +43,6 @@ async def read_offset_from_database(pool, dataset_name, offset_table_name, defau
     
     query = f"SELECT last_offset FROM {offset_table_name} WHERE dataset_name = %s"
     try:
-        # pool = await connect_to_mysql()    
         async with pool.acquire() as conn, conn.cursor() as cursor:
             await cursor.execute(query, (dataset_name,))
             result = await cursor.fetchone()
@@ -56,9 +55,7 @@ async def update_offset_in_database(pool, dataset_name, offset_table_name, prima
     # Updates the last offset processed (e.g. streamed or cleaned) for the given dataset
     # Stores the offset in the table 
     current_offset = await read_offset_from_database(pool, dataset_name, offset_table_name)
-    try:
-        pool = await connect_to_mysql()    
-        
+    try:        
         async with pool.acquire() as conn, conn.cursor() as cursor:
             if current_offset in ('0', '1970-01-01 00:00:01'):
                 query = f"""

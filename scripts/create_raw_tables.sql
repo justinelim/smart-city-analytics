@@ -9,9 +9,9 @@ CREATE TABLE `streamed_offsets` (
 `last_offset` VARCHAR(20)
 );
 
-/* Processed Offsets Table */
-DROP TABLE IF EXISTS `processed_offsets`;
-CREATE TABLE `processed_offsets` (
+/* Cleaned Offsets Table */
+DROP TABLE IF EXISTS `cleaned_offsets`;
+CREATE TABLE `cleaned_offsets` (
 `dataset_name` VARCHAR(20) PRIMARY KEY,
 `primary_key` VARCHAR(10),
 `last_offset` VARCHAR(20)

@@ -4,7 +4,9 @@ import asyncio
 from confluent_kafka import Producer
 from dotenv import load_dotenv
 
-from utils import load_config, connect_to_mysql, handle_non_serializable_types, publish_message
+from utils import load_config, connect_to_mysql, \
+    read_offset_from_database, update_offset_in_database, \
+    handle_non_serializable_types, publish_message
 import logging
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -18,57 +20,16 @@ kafka_config = {
 
 producer = Producer(kafka_config)
 
-async def read_offset_from_database(dataset_name, default_offset='0'):
-    # Returns the last offset processed for the given dataset
-    # Stores and reads the offset from a table.
-    if dataset_name == "weather":
-        # Set default timestamp for weather dataset before try-except
-        default_offset = '1970-01-01 00:00:01'
-    
-    query = "SELECT last_offset FROM streamed_offsets WHERE dataset_name = %s"
-    try:
-        pool = await connect_to_mysql()    
-        async with pool.acquire() as conn, conn.cursor() as cursor:
-            await cursor.execute(query, (dataset_name,))
-            result = await cursor.fetchone()
-            return result[0] if result else default_offset
-    except Exception as e:
-        print(f"Error reading offset from database: {e}")
-        return default_offset
-
-async def update_offset_in_database(dataset_name, primary_key, new_offset):
-    # Updates the last offset streamed for the given dataset
-    # Stores the offset in the table 
-    current_offset = await read_offset_from_database(dataset_name)
-    try:
-        pool = await connect_to_mysql()    
-        
-        async with pool.acquire() as conn, conn.cursor() as cursor:
-            if current_offset in ('0', '1970-01-01 00:00:01'):
-                query = """
-                    INSERT INTO streamed_offsets (dataset_name, primary_key, last_offset)
-                    VALUES (%s, %s, %s)
-                """
-                await cursor.execute(query, (dataset_name, primary_key, new_offset))
-            else:
-                query = """
-                    UPDATE streamed_offsets
-                    SET last_offset = %s
-                    WHERE dataset_name = %s
-                """
-                await cursor.execute(query, (new_offset, dataset_name))
-            await conn.commit()
-    except Exception as e:
-        logging.error(f"Error updating offset in database: {e}")
-
 async def process_dataset(dataset_name, dataset_config):
     pool = await connect_to_mysql()    
-        
+    offset_table_name = 'streamed_offsets'
+
     async with pool.acquire() as conn, conn.cursor() as cursor:
 
         # Read offset from database
-        offset = await read_offset_from_database(dataset_name)
+        offset = await read_offset_from_database(pool, dataset_name, offset_table_name)
         primary_key = dataset_config['primary_key']
+        
         # Use a parameterized query
         logging.debug(f"Offset: {offset} for table {dataset_name}")
         query = f"SELECT * FROM {dataset_name} WHERE {primary_key} > %s ORDER BY {primary_key}"
@@ -93,7 +54,7 @@ async def process_dataset(dataset_name, dataset_config):
                 logging.error(f"Failed to publish message: {e}. Table: {dataset_name}")
 
             new_offset = record[dataset_config['raw_field_names'].index(primary_key)]
-            await update_offset_in_database(dataset_name, primary_key, new_offset)
+            await update_offset_in_database(pool, dataset_name, offset_table_name, primary_key, new_offset)
 
         await asyncio.sleep(1)
 
