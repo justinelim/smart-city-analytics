@@ -9,6 +9,8 @@ from utils import load_config, connect_to_mysql, \
     handle_non_serializable_types, publish_message
 import logging
 
+started_event = asyncio.Event()
+
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 load_dotenv()
@@ -60,7 +62,7 @@ async def process_dataset(dataset_name, dataset_config):
 
 async def main():
     config = load_config(config_path='config.json')
-
+    started_event.set()
     tasks = []
     for dataset_name in config:
         if dataset_name == "parking_metadata":
