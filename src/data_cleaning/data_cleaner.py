@@ -2,13 +2,12 @@ import asyncio
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 import os
 from dotenv import load_dotenv
-from utils import create_pool, connect_to_mysql, load_config, publish_message, \
-    handle_non_serializable_types, \
-    read_offset_from_database, \
-    update_offset_in_database
+from utils import create_pool, load_config, publish_message, \
+    read_offset, \
+    update_offset
 import logging
-import json
-from data_persistence import DataPersistence
+from src.data_cleaning.data_persistence import DataPersistence
+from src.data_cleaning.cleaner_factory import get_cleaner
 
 
 load_dotenv()
@@ -20,47 +19,6 @@ Consume messages from raw Kafka stream, clean and write to clean_ Kafka topic an
 store/persist cleaned data in MySQL db.
 """
 
-class DecimalEncoder(json.JSONEncoder):
-    def default(self, obj):
-        return handle_non_serializable_types(obj)
-
-
-class DataCleaner:
-    """
-    Base class for specific dataset cleaning processors: sets the general structure
-    & common functionalities that all specific dataset cleaning processors will use.
-    """
-    primary_key = None
-    primary_key_idx = None
-    html_field = None
-
-    def __init__(self, kafka_topic, json_config, pool):
-        self.kafka_topic = kafka_topic
-        self.json_config = json_config
-        self.pool = pool
-        self.raw_field_names = self.json_config["raw_field_names"]
-
-    @staticmethod
-    def deserialize_data(data: bytes) -> list:
-        return json.loads(data)
-
-    @staticmethod
-    def serialize_data(data: list) -> bytes:
-        return json.dumps(data, cls=DecimalEncoder)
-    
-    def transform_data(self, data: bytes) -> list:
-        return self.deserialize_data(data)
-    
-    def get_sql_query(self, data):
-        placeholders = ', '.join(["%s"] * len(data))
-        insert_query = f"INSERT INTO clean_{self.kafka_topic} VALUES ({placeholders})"
-        if self.primary_key and self.html_field and self.primary_key_idx is not None:
-            update_query = f"UPDATE clean_{self.kafka_topic} SET {self.html_field} = %s WHERE {self.primary_key} = %s"
-            return insert_query, data, update_query, self.html_field, self.primary_key_idx
-        else:
-            return insert_query, data
-
-
 class DataCleaningCoordinator:
     """
     Orchestrates the cleaning process for Kafka messages:
@@ -69,21 +27,23 @@ class DataCleaningCoordinator:
     - Publishes cleaned data back to Kafka.
     - Coordinates with DataPersistence to store cleaned data in MySQL database.
     """
-    def __init__(self, pool, config, cleaner, data_persistence) -> None:
+    def __init__(self, pool, config, topic, cleaner, data_persistence) -> None:
         self.kafka_config = {
             'bootstrap.servers': os.getenv("KAFKA_BOOTSTRAP_SERVERS"),
             'group.id': 'consumer_group_id',
             'enable.auto.commit': 'false',  # Disable auto commit
             'auto.offset.reset': 'earliest',
         }
-        self.config = config
         self.pool = pool
-        self.cleaner = cleaner  # Cleaner instance
+        self.config = config
+        self.topic = topic
+        self.cleaner = cleaner
         self.data_persistence = data_persistence
+
 
     async def start_cleaning(self):
         consumer = AIOKafkaConsumer(
-            *self.topics,  # List of topics to subscribe to
+            self.topic,
             bootstrap_servers=self.kafka_config['bootstrap.servers'],
             group_id=self.kafka_config['group.id'],
             enable_auto_commit=False,  # Important for manual offset control
@@ -97,12 +57,17 @@ class DataCleaningCoordinator:
 
         try:
             async for message in consumer:
-                processed = await self.clean_message(message, producer, consumer)
+                processed = await self.clean_message(message, consumer, producer)
                 if processed:
                     await consumer.commit()  # Manually commit the offset
+        # except Exception as e:
+        #     logging.error(f"Error in start_cleaning: {e}")
+
         finally:
-            await consumer.stop()
+            logging.info("Stopping the producer")
             await producer.stop()
+            logging.info("Producer stopped")
+            await consumer.stop()
 
     async def clean_message(self, message, consumer, producer):
         """
@@ -118,39 +83,41 @@ class DataCleaningCoordinator:
         :param producer: The Kafka producer instance for publishing cleaned data.
         :return: A boolean indicating whether the message was processed.
         """
-        logging.info("Reached function clean_message()")
 
-        topic = message.topic()
+        topic = message.topic
         offset_table_name = "cleaned_offsets"
+        partition = message.partition
         logging.debug(f"Cleaning message from topic: {topic}")
-        current_offset = await read_offset_from_database(self.pool, topic, offset_table_name)
-        if message.offset() <= current_offset:
+        current_offset = await read_offset(self.pool, topic, partition, offset_table_name)
+        if message.offset <= current_offset:
             return False # Skip processing this message
         
         try:
-            # processor_class_name = self.topic_config[topic]["processor_class"]
-            cleaner_config = self.json_config[topic]
-            cleaner_class_name = cleaner_config["cleaner_class"]
+            cleaner_name = self.config[message.topic]['cleaner_class']
+            logging.debug(f"### Cleaner name: {cleaner_name}")
+
+            self.cleaner = get_cleaner(cleaner_name, message.topic, self.config, self.pool)
+
 
         except KeyError as e:
             logging.error(f"Failed to get cleaner class for topic {topic}. Error: {e}")
             return  # Return early if there's an error
         
-        incoming_message = message.value() # incoming_message: bytes
+        incoming_message = message.value # incoming_message: bytes
 
-        cleaned_data = self.cleaner.transform_data(incoming_message)
+        cleaned_data = await self.cleaner.transform_data(incoming_message)
     
-        # logging.debug(f"Data: {data}")
-        # logging.debug(f"Type(Data): {type(data)}")
+        logging.debug(f"Data: {cleaned_data}")
+        logging.debug(f"Type(Data): {type(cleaned_data)}")
 
         await publish_message(producer, f"clean_{topic}", self.cleaner.serialize_data(cleaned_data))
         logging.debug(f"Serialized Data: {self.cleaner.serialize_data(cleaned_data)}")
 
         await self.data_persistence.persist_data_in_mysql(self.cleaner, cleaned_data)
 
-
         # Update the offset in the database after processing
-        await update_offset_in_database(message.topic(), message.key(), message.offset())
+        new_offset = message.offset
+        await update_offset(self.pool, topic, partition, new_offset, offset_table_name)
         
         # Manually commit the offset in Kafka
         await consumer.commit()
@@ -172,17 +139,15 @@ async def main():
     for dataset_name in config:
         if dataset_name == "parking_metadata":
             continue
-        cleaner_class = globals()[config[dataset_name]['cleaner_class']]
-        cleaner_instance = cleaner_class(dataset_name, config[dataset_name], pool) # Pass the pool to each cleaner instance
-        cleaning_coordinator = DataCleaningCoordinator(pool, config, cleaner_instance, data_persistence)
-        tasks.append(asyncio.create_task(cleaning_coordinator.clean()))
+        cleaner_instance = get_cleaner(config[dataset_name]['cleaner_class'], dataset_name, config[dataset_name], pool)
+        cleaning_coordinator = DataCleaningCoordinator(pool, config, dataset_name, cleaner_instance, data_persistence)
+        tasks.append(asyncio.create_task(cleaning_coordinator.start_cleaning()))
     await asyncio.gather(*tasks)
+
+    # Close each DataPersistence instance
+    for task in tasks:
+        await task.data_persistence.close_pool()
 
     # Close the pool after all tasks are done
     pool.close()
     await pool.wait_closed()
-    
-
-# Run the event loop
-if __name__ == '__main__':
-    asyncio.run(main())

@@ -1,5 +1,5 @@
 import logging
-from src.data_cleaning.data_cleaner import DataCleaner
+from src.data_cleaning.base_cleaner import DataCleaner
 
 class ParkingCleaner(DataCleaner):
     primary_key = "garagecode"
@@ -9,16 +9,15 @@ class ParkingCleaner(DataCleaner):
         super().__init__(kafka_topic, json_config, pool)
         self.logger = logging.getLogger(__name__)
 
-    async def transform_data(self, data: bytes):
+    async def transform_data(self, data: bytes) -> list:
         """
         Handle special processing required before inserting the data into the database:
         (1) Enrich with metadata
         """
         logging.debug("Reached transform_data() method of the ParkingCleaner class")
-        deserialized_data = self.deserialize_data(data)
+        # deserialized_data = self.deserialize_data(data)
+        deserialized_data = await super().transform_data(data)
         enriched_data = await self.enrich_parking_data(deserialized_data, self.primary_key, self.primary_key_idx)
-        # serialized_data = self.serialize_data(enriched_data)
-        # logging.debug(f"Type(Enriched data): {type(enriched_data)}")
 
         return enriched_data
     

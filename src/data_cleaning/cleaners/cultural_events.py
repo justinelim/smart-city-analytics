@@ -1,5 +1,5 @@
 import logging
-from src.data_cleaning.data_cleaner import DataCleaner
+from src.data_cleaning.base_cleaner import DataCleaner
 from utils import convert_unix_timestamp
 
 class CulturalEventsCleaner(DataCleaner):
@@ -10,14 +10,13 @@ class CulturalEventsCleaner(DataCleaner):
         super().__init__(kafka_topic, json_config, pool)
         self.logger = logging.getLogger(__name__)
 
-    def transform_data(self, data):
+    async def transform_data(self, data):
         """
         Handle special processing required before inserting the data into the database:
         (1) Convert Unix timestamp values to human-readable timestamp (`timestamp`)
         (2) Calculate the average ticket price
 
         """
-        logging.debug("Reached function transform_data()")
         
         deserialized_data = self.deserialize_data(data)
         transformed_data = convert_unix_timestamp(deserialized_data, self.timestamp_field_idx)

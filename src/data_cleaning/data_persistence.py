@@ -5,9 +5,9 @@ import aiomysql
 Handle all the operations related to storage and retrieval of cleaned data.
 """
 class DataPersistence:
-    def __init__(self, db_config):
-        self.db_config = db_config
-        self.pool = None
+    def __init__(self, pool):
+        # self.db_config = db_config
+        self.pool = pool
 
     # async def create_pool(self):
     #     self.pool = await aiomysql.create_pool(**self.db_config)
