@@ -2,7 +2,6 @@ USE smart_city;
 SHOW VARIABLES LIKE 'secure_file_priv';
 
 /* Clean data */
-
 DROP TABLE IF EXISTS `clean_cultural_events`;
 CREATE TABLE `clean_cultural_events` (
 `row_id` INT,

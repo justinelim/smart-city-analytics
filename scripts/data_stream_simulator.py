@@ -1,77 +1,83 @@
 import os
 import json
 import asyncio
-from confluent_kafka import Producer
+from aiokafka import AIOKafkaProducer
+
 from dotenv import load_dotenv
 
 from utils import load_config, connect_to_mysql, \
-    read_offset_from_database, update_offset_in_database, \
+    read_offset, update_offset, \
     handle_non_serializable_types, publish_message
 import logging
 
-started_event = asyncio.Event()
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
 load_dotenv()
 
-kafka_config = {
-    'bootstrap.servers': os.getenv("KAFKA_BOOTSTRAP_SERVERS"),
-    'enable.idempotence': 'true',
-}
 
-producer = Producer(kafka_config)
-
-async def process_dataset(dataset_name, dataset_config):
-    pool = await connect_to_mysql()    
+async def process_dataset(producer, dataset_name, dataset_config, pool):
     offset_table_name = 'streamed_offsets'
+    partition = 0  # Assuming single partition
+    primary_key = dataset_config['primary_key']
 
     async with pool.acquire() as conn, conn.cursor() as cursor:
-
         # Read offset from database
-        offset = await read_offset_from_database(pool, dataset_name, offset_table_name)
-        primary_key = dataset_config['primary_key']
+        offset = await read_offset(pool, dataset_name, partition, offset_table_name)
+        logging.debug(f"Streamed Offset: {offset} for topic {dataset_name}")
         
         # Use a parameterized query
-        logging.debug(f"Offset: {offset} for table {dataset_name}")
-        query = f"SELECT * FROM {dataset_name} WHERE {primary_key} > %s ORDER BY {primary_key}"
+        query = f"SELECT * FROM {dataset_name} ORDER BY {primary_key} LIMIT 1000 OFFSET %s"
         logging.debug(f"### Query to run: {query}")
-        await cursor.execute(query, (offset,))  # Pass the offset as a parameter
+        await cursor.execute(query, (offset,))
         records = await cursor.fetchall()
         logging.debug(f"Number of records fetched: {len(records)}")
 
-
         for record in records:
-            # logging.debug(f"Record: {record}")
             serialized_record = tuple(map(handle_non_serializable_types, record))
             # logging.debug(f"Serialized record: {serialized_record} for table {dataset_name}")
             serialized_json = json.dumps(serialized_record)
             logging.debug(f"Serialized json: {serialized_json} for table {dataset_name}")
 
-            # publish_message(producer, dataset_name, serialized_json)
-            # logging.debug(f"Attempting to publish record: {serialized_json} to topic {dataset_name}")
             try:
-                publish_message(producer, dataset_name, serialized_json)
+                await producer.send_and_wait(dataset_name, serialized_json.encode('utf-8'))
             except Exception as e:
                 logging.error(f"Failed to publish message: {e}. Table: {dataset_name}")
+                break
+            except KeyboardInterrupt:
+                # Graceful shutdown: commit offsets, close connections, etc.
+                logging.info("Shutting down gracefully...")
+                await producer.stop()
+                if pool:
+                    pool.close()
+                    await pool.wait_closed()
+                logging.info("Shutdown complete.")
+        
+        if records:
+            # Update offset only if records were fetched and processed
+            last_record = records[-1]
+            new_offset = last_record[dataset_config['raw_field_names'].index(primary_key)]
+            await update_offset(pool, dataset_name, partition, new_offset, offset_table_name)
 
-            new_offset = record[dataset_config['raw_field_names'].index(primary_key)]
-            await update_offset_in_database(pool, dataset_name, offset_table_name, primary_key, new_offset)
+async def main(started_event):
+    producer = AIOKafkaProducer(bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS"))
+    await producer.start()
 
-        await asyncio.sleep(1)
-
-async def main():
     config = load_config(config_path='config.json')
     started_event.set()
     tasks = []
-    for dataset_name in config:
-        if dataset_name == "parking_metadata":
-            continue
-        dataset_config = config[dataset_name]
-        task = asyncio.create_task(process_dataset(dataset_name, dataset_config))
-        tasks.append(task)
+    pool = await connect_to_mysql()
 
-    await asyncio.gather(*tasks)
+    try:
+        for dataset_name in config:
+            if dataset_name == "parking_metadata":
+                continue
+            dataset_config = config[dataset_name]
+            task = asyncio.create_task(process_dataset(producer, dataset_name, dataset_config, pool))
+            tasks.append(task)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+        await asyncio.gather(*tasks)
+    finally:
+        if pool:
+            pool.close()
+            await pool.wait_closed()
+        await producer.stop()

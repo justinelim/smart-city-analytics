@@ -15,7 +15,10 @@ SELECT COUNT(*) FROM library_events;
 SELECT COUNT(distinct id) FROM library_events;
 
 SELECT * FROM streamed_offsets;
-SELECT * FROM processed_offsets;
+SELECT * FROM cleaned_offsets;
+
+SELECT * FROM pollution WHERE id > 0 ORDER BY id;
+SELECT * FROM road_traffic WHERE _id > 0 ORDER BY _id;
 
 SELECT * FROM cultural_events; -- row count: 100
 SELECT * FROM library_events; -- row count: 1548
