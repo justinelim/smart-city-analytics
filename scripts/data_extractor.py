@@ -6,17 +6,20 @@ import pandas as pd
 import numpy as np
 from utils import connect_to_mysql, load_config
 import logging
+import asyncio
+
 
 logger = logging.getLogger()
 
 
 class DataExtractor:
-    def __init__(self, dataset_list:list, config_path:str) -> None:
+    def __init__(self, pool, dataset_list:list, config_path:str) -> None:
         self.dataset_list = dataset_list
         self.config_path = config_path
         self.config = load_config(self.config_path)
+        self.pool = pool
 
-    def extract_data(self):
+    async def extract_data(self):
         for dataset in self.dataset_list:
             logger.info(f'Start data extraction for {dataset}..')
             self.load_raw_config(dataset)
@@ -25,9 +28,9 @@ class DataExtractor:
                 self.decompress()
 
             if dataset != 'weather':
-                self.extract_from_csv()
+                await self.extract_from_csv()
             else:
-                self.extract_from_json()
+                await self.extract_from_json()
             
             logger.info(f'{dataset} data extraction complete!')
 
@@ -57,106 +60,107 @@ class DataExtractor:
                 with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                     zip_ref.extractall(destination_subdir)
 
-    def extract_from_csv(self):
-        # Create a cursor object
-        conn = connect_to_mysql()
-        cursor = conn.cursor()
+    async def extract_from_csv(self):
+        if self.pool is None:
+            logger.error("Failed to connect to the MySQL database.")
+            return
 
-        for root, dirs, files in os.walk(self.destination_dir):
-            for file_name in files:
-                file_path = os.path.join(root, file_name)
-                logger.info(f'FILE_PATH: {file_path}')
-                df = pd.read_csv(file_path, header=None)
-                
-                # Determine if the first row matches the expected header values
-                has_header = True if tuple(df.iloc[0]) == self.raw_field_names else False
-
-                # Iterate over the rows of the DataFrame and insert into the MySQL table
-                for index, row in enumerate(df.itertuples(index=False, name=None), start=1):
-                    if has_header and index == 1:
-                        continue  # Skip the first row if it matches the expected header values
-
-                    values = tuple(np.where(pd.isnull(row), None, row))
-                    placeholders = ", ".join(["%s"] * len(values))
-                    fields = ', '.join(self.raw_field_names)
-                    sql = f"INSERT INTO {self.raw_table} ({fields}) VALUES ({placeholders})"
-                    # print("Executing query:", sql)
-                    # print("With values:", values)
-                    cursor.execute(sql, values)
+        async with self.pool.acquire() as conn, conn.cursor() as cursor:
+            for root, dirs, files in os.walk(self.destination_dir):
+                for file_name in files:
+                    file_path = os.path.join(root, file_name)
+                    logger.info(f'FILE_PATH: {file_path}')
+                    df = pd.read_csv(file_path, header=None)
                     
+                    # Determine if the first row matches the expected header values
+                    has_header = tuple(df.iloc[0]) == self.raw_field_names
 
-                conn.commit()
+                    # Iterate over the rows of the DataFrame and insert into the MySQL table
+                    for index, row in enumerate(df.itertuples(index=False, name=None), start=1):
+                        if has_header and index == 1:
+                            continue  # Skip the first row if it matches the expected header values
 
-        conn.close()
+                        values = tuple(np.where(pd.isnull(row), None, row))
+                        placeholders = ", ".join(["%s"] * len(values))
+                        fields = ', '.join(self.raw_field_names)
+                        sql = f"INSERT INTO {self.raw_table} ({fields}) VALUES ({placeholders})"
+                        await cursor.execute(sql, values)
+                
+            await conn.commit()
 
-    def extract_from_json(self):
-        conn = connect_to_mysql()
-        cursor = conn.cursor()
-        data = {}  # Initialize dictionary to store the data
+    async def extract_from_json(self):
+        if self.pool is None:
+            logger.error("Failed to connect to the MySQL database.")
+            return
+        
+        async with self.pool.acquire() as conn, conn.cursor() as cursor:
+            data = {}  # Initialize dictionary to store the data
 
-        for root, dirs, files in os.walk(self.destination_dir):
-            for file_name in files:
-                if file_name.startswith('._'):
-                    continue
-                print('FILE_NAME', file_name)
-                file_path = os.path.join(root, file_name)
-                print('FILE_PATH', file_path)
-                with open(file_path, 'r') as file:
-                    for line in file:
-                        
+            for root, dirs, files in os.walk(self.destination_dir):
+                for file_name in files:
+                    if file_name.startswith('._'):
+                        continue
+                    print('FILE_NAME', file_name)
+                    file_path = os.path.join(root, file_name)
+                    print('FILE_PATH', file_path)
+                    with open(file_path, 'r') as file:
+                        for line in file:
+                            
 
-                        line = line.strip()
-                        if line:
-                            file_data = json.loads(line)
-                            field_name = os.path.splitext(file_name)[0]  # Extract the field name from the file name
-                            # Extract the timestamp-value pairs from the JSON object
-                            timestamp_values = file_data.items()
-                            # Append the field values to the corresponding field in the data dictionary
-                            for timestamp, value in timestamp_values:
-                                if timestamp not in data:
-                                    data[timestamp] = {}
-                                data[timestamp][field_name] = value
+                            line = line.strip()
+                            if line:
+                                file_data = json.loads(line)
+                                field_name = os.path.splitext(file_name)[0]  # Extract the field name from the file name
+                                # Extract the timestamp-value pairs from the JSON object
+                                timestamp_values = file_data.items()
+                                # Append the field values to the corresponding field in the data dictionary
+                                for timestamp, value in timestamp_values:
+                                    if timestamp not in data:
+                                        data[timestamp] = {}
+                                    data[timestamp][field_name] = value
 
-        df = pd.DataFrame.from_dict(data, orient='index')
-        df.reset_index(inplace=True)
-        df.rename(columns={'index': 'timestamp'}, inplace=True)
+            df = pd.DataFrame.from_dict(data, orient='index')
+            df.reset_index(inplace=True)
+            df.rename(columns={'index': 'timestamp'}, inplace=True)
 
-        # if 'aarhus' in file_path:
-        #     df['longitude'] = '10.1049860760574'
-        #     df['latitude'] = '56.2317206942821'
-        # elif 'brasov' in file_path:
-        #     df['longitude'] = '10.179336344162948'  # nowhere
-        #     df['latitude'] = '56.138322977998705'  # nowhere
+            # if 'aarhus' in file_path:
+            #     df['longitude'] = '10.1049860760574'
+            #     df['latitude'] = '56.2317206942821'
+            # elif 'brasov' in file_path:
+            #     df['longitude'] = '10.179336344162948'  # nowhere
+            #     df['latitude'] = '56.138322977998705'  # nowhere
 
-        print(df)
+            print(df)
 
-        # Iterate over the rows of the DataFrame and insert into the MySQL table
-        for index, row in enumerate(df.itertuples(index=False, name=None), start=1):
-            values = tuple(np.where(pd.isnull(row), None, row))
-            placeholders = ", ".join(["%s"] * len(values))
-            fields = ', '.join(self.raw_field_names)
-            sql = f"INSERT INTO {self.raw_table} ({fields}) VALUES ({placeholders})"
-            cursor.execute(sql, values)
+            # Iterate over the rows of the DataFrame and insert into the MySQL table
+            for index, row in enumerate(df.itertuples(index=False, name=None), start=1):
+                values = tuple(np.where(pd.isnull(row), None, row))
+                placeholders = ", ".join(["%s"] * len(values))
+                fields = ', '.join(self.raw_field_names)
+                sql = f"INSERT INTO {self.raw_table} ({fields}) VALUES ({placeholders})"
+                await cursor.execute(sql, values)  # Execute the query asynchronously
 
-            conn.commit()
+                await conn.commit()  # Commit the transaction asynchronously
 
-        conn.close()
 
-def main():
+async def main():
+    pool = await connect_to_mysql()
     dataset_list = [
-        "cultural_events",
+        # "cultural_events",
         "library_events",
-        "parking",
-        "parking_metadata",
-        "pollution",
-        "road_traffic",
-        "social_events",
-        "weather"
+        # "parking",
+        # "parking_metadata",
+        # "pollution",
+        # "road_traffic",
+        # "social_events",
+        # "weather"
         ]
     config_path = "config.json"
 
-    extractor = DataExtractor(dataset_list=dataset_list, config_path=config_path)
-    extractor.extract_data()
-
-if __name__ == '__main__':
-    main()
+    try:
+        extractor = DataExtractor(pool, dataset_list=dataset_list, config_path=config_path)
+        await extractor.extract_data()
+    finally:
+        if pool:
+            pool.close()
+            await pool.wait_closed()

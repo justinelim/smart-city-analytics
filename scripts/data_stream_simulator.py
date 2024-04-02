@@ -2,11 +2,12 @@ import os
 import json
 import asyncio
 from aiokafka import AIOKafkaProducer
+import time
 
 from dotenv import load_dotenv
 
 from utils import load_config, connect_to_mysql, \
-    read_offset, update_offset, \
+    read_offset, update_offset, update_offset_within_transaction, \
     handle_non_serializable_types, publish_message
 import logging
 
@@ -16,50 +17,61 @@ load_dotenv()
 
 
 async def process_dataset(producer, dataset_name, dataset_config, pool):
+    start_time = time.time()
+    logging.info(f"Starting processing for dataset: {dataset_name}")
     offset_table_name = 'streamed_offsets'
     partition = 0  # Assuming single partition
     primary_key = dataset_config['primary_key']
 
     async with pool.acquire() as conn, conn.cursor() as cursor:
-        # Read offset from database
-        offset = await read_offset(pool, dataset_name, partition, offset_table_name)
-        logging.debug(f"Streamed Offset: {offset} for topic {dataset_name}")
-        
-        # Use a parameterized query
-        query = f"SELECT * FROM {dataset_name} ORDER BY {primary_key} LIMIT 1000 OFFSET %s"
-        logging.debug(f"### Query to run: {query}")
-        await cursor.execute(query, (offset,))
-        records = await cursor.fetchall()
-        logging.debug(f"Number of records fetched: {len(records)}")
+        while True:
+            offset = await read_offset(pool, dataset_name, partition, offset_table_name)
+            logging.debug(f"Streamed Offset: {offset} for topic {dataset_name}")
+            
+            # Use a parameterized query
+            query = f"SELECT * FROM {dataset_name} WHERE {primary_key} > %s ORDER BY {primary_key} LIMIT 1"
+            await cursor.execute(query, (offset,))
+            record = await cursor.fetchone()
+            # logging.debug(f"Fetching record with offset: {offset}")
+            # await cursor.execute(query, (offset,))
+            # record = await cursor.fetchone()
+            # logging.debug(f"Fetched record: {record}")
 
-        for record in records:
-            serialized_record = tuple(map(handle_non_serializable_types, record))
-            # logging.debug(f"Serialized record: {serialized_record} for table {dataset_name}")
-            serialized_json = json.dumps(serialized_record)
-            logging.debug(f"Serialized json: {serialized_json} for table {dataset_name}")
+
+            if not record:
+                logging.debug("No more records to fetch.")
+                break
 
             try:
+                await conn.begin()  # Start transaction for the record
+                serialized_record = tuple(map(handle_non_serializable_types, record))
+                serialized_json = json.dumps(serialized_record)
+                
+                # Send to Kafka
                 await producer.send_and_wait(dataset_name, serialized_json.encode('utf-8'))
+
+                # Update offset
+                new_offset = record[dataset_config['raw_field_names'].index(primary_key)]
+                # await update_offset(pool, dataset_name, partition, new_offset, offset_table_name)
+                logging.debug(f"Attempting to update offset to: {new_offset}")
+
+                await update_offset(pool, dataset_name, partition, new_offset, offset_table_name)
+                # await update_offset_within_transaction(conn, cursor, dataset_name, partition, new_offset, offset_table_name)
+
+                await conn.commit()  # Commit transaction after successful processing and offset update
             except Exception as e:
+                await conn.rollback()  # Rollback the transaction in case of an error
                 logging.error(f"Failed to publish message: {e}. Table: {dataset_name}")
-                break
-            except KeyboardInterrupt:
-                # Graceful shutdown: commit offsets, close connections, etc.
-                logging.info("Shutting down gracefully...")
-                await producer.stop()
-                if pool:
-                    pool.close()
-                    await pool.wait_closed()
-                logging.info("Shutdown complete.")
-        
-        if records:
-            # Update offset only if records were fetched and processed
-            last_record = records[-1]
-            new_offset = last_record[dataset_config['raw_field_names'].index(primary_key)]
-            await update_offset(pool, dataset_name, partition, new_offset, offset_table_name)
+                continue  # Skip the current record and continue with the next
+
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            logging.info(f"Completed stream simulation for dataset: {dataset_name}. Time taken: {elapsed_time} seconds")
+
 
 async def main(started_event):
-    producer = AIOKafkaProducer(bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS"))
+    producer = AIOKafkaProducer(enable_idempotence=True,
+                                bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS"))
     await producer.start()
 
     config = load_config(config_path='config.json')

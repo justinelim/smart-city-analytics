@@ -88,26 +88,32 @@ async def read_offset(pool, topic, partition, offset_table_name, default_offset=
 
 
 async def update_offset(pool, topic, partition, new_offset, offset_table_name):
-    # Updates the last Kafka offset processed for the given topic and partition
-    current_offset = await read_offset(pool, topic, partition, offset_table_name)
+    query = f"""
+        INSERT INTO {offset_table_name} (topic, `partition`, last_offset)
+        VALUES (%s, %s, %s) AS new_values
+        ON DUPLICATE KEY UPDATE
+        last_offset = new_values.last_offset
+    """
     try:
         async with pool.acquire() as conn, conn.cursor() as cursor:
-            if current_offset == 0:
-                query = f"""
-                    INSERT INTO {offset_table_name} (topic, `partition`, last_offset)
-                    VALUES (%s, %s, %s)
-                """
-                await cursor.execute(query, (topic, partition, new_offset))
-            else:
-                query = f"""
-                    UPDATE {offset_table_name}
-                    SET last_offset = %s
-                    WHERE topic = %s AND `partition` = %s
-                """
-                await cursor.execute(query, (new_offset, topic, partition))
+            await cursor.execute(query, (topic, partition, new_offset))
             await conn.commit()
     except Exception as e:
         logging.error(f"Error updating offset in database: {e}")
+
+async def update_offset_within_transaction(conn, cursor, topic, partition, new_offset, offset_table_name):
+    query = f"""
+        INSERT INTO {offset_table_name} (topic, `partition`, last_offset)
+        VALUES (%s, %s, %s) AS new_values
+        ON DUPLICATE KEY UPDATE
+        last_offset = new_values.last_offset
+    """
+    try:
+        await cursor.execute(query, (topic, partition, new_offset))
+    except Exception as e:
+        logging.error(f"Error updating offset in database: {e}")
+        raise  # Re-raise the exception to handle it in the calling function
+
 
 def handle_non_serializable_types(obj):
     """

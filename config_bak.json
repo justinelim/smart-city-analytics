@@ -44,7 +44,7 @@
             "STRING", "STRING", "STRING", "STRING", 
             "STRING", "STRING", "STRING", "STRING",
             "STRING", "STRING", "FLOAT", "DATETIME",
-            "FLOAT", "STRING", "STRING", "STRING"
+            "FLOAT", "STRING", "INT", "STRING"
         ]
     },
     "parking": {

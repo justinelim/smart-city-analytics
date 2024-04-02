@@ -70,7 +70,7 @@ CREATE TABLE `library_events` (
 	`starttime` DATETIME,
 	`latitude` DECIMAL(12, 10),
 	`_id` VARCHAR(255),
-	`id` VARCHAR(255),
+	`id` INT,
 	`streamtime` VARCHAR(255)
 );
 

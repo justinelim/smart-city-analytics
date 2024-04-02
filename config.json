@@ -1,42 +1,26 @@
 {
-    "pollution": {
+	"library_events": {
         "cleaner_class": "DataCleaner",
-        "processor_class": "PollutionDataProcessor",
-        "raw_table": "pollution",
-        "raw_field_names": ["ozone", "particullate_matter", "carbon_monoxide", "sulfure_dioxide", "nitrogen_dioxide", "longitude", "latitude", "timestamp", "id"],
+        "processor_class": "LibraryEventsDataProcessor",
+        "raw_table": "library_events",
+        "raw_field_names": ["lid", "city", "endtime", "title", "url", "price", "changed", "content", "zipcode", "library", "imageurl", "teaser", "street", "status", "longitude", "starttime", "latitude", "_id", "id", "streamtime"],
         "primary_key": "id",
-        "destination_dir": "data/extracted_pollution_datasets",
-        "tar_file_pattern": "data/citypulse_pollution_*.tar.gz",
+        "destination_dir": "data/library_events_dataset",
+        "tar_file_pattern": null,
         "zip_file_pattern": null,
         "clean_field_names": [
-            "ozone", "particulate_matter", "carbon_monoxide", "sulfur_dioxide",
-            "nitrogen_dioxide", "longitude", "latitude", "timestamp",
-            "id"
+            "library_id", "city", "end_time", "title",
+            "url", "price", "changed", "content",
+            "zipcode", "library", "image_url", "teaser",
+            "street", "status", "longitude", "start_time",
+            "latitude", "_id", "id", "stream_time"
         ],
         "clean_field_types": [
-            "INT", "INT", "INT", "INT",
-            "INT", "FLOAT", "FLOAT", "DATETIME",
-            "INT"
-        ]
-    },
-    "road_traffic": {
-        "cleaner_class": "DataCleaner",
-        "processor_class": "RoadTrafficDataProcessor",
-        "raw_table": "road_traffic",
-        "raw_field_names": ["status", "avgMeasuredTime", "avgSpeed", "extID", "medianMeasuredTime", "TIMESTAMP", "vehicleCount", "_id", "REPORT_ID"],
-        "primary_key": "_id",
-        "destination_dir": "data/extracted_road_traffic_datasets",
-        "tar_file_pattern": "data/citypulse_traffic_*.tar.gz",
-        "zip_file_pattern": "data/citypulse_traffic_*.zip",
-        "clean_field_names": [
-            "status", "avg_measured_time", "avg_speed", "ext_id",
-            "median_measured_time", "timestamp", "vehicle_count", "_id",
-            "report_id"
-        ],
-        "clean_field_types": [
-            "STRING", "INT", "INT", "INT",
-            "INT", "DATETIME", "INT", "INT", 
-            "INT"
+            "INT", "STRING", "DATETIME", "STRING", 
+            "STRING", "STRING", "STRING", "STRING", 
+            "STRING", "STRING", "STRING", "STRING",
+            "STRING", "STRING", "FLOAT", "DATETIME",
+            "FLOAT", "STRING", "INT", "STRING"
         ]
     }
 }
