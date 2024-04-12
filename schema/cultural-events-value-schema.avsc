@@ -1,0 +1,83 @@
+{
+  "type": "record",
+  "name": "cultural_events",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "row_id",
+      "type": "int"
+    },
+    {
+      "name": "city",
+      "type": "string"
+    },
+    {
+      "name": "event_name",
+      "type": "string"
+    },
+    {
+      "name": "ticket_url",
+      "type": "string"
+    },
+    {
+      "name": "avg_ticket_price",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    },
+    {
+      "name": "postal_code",
+      "type": "int"
+    },
+    {
+      "name": "longitude",
+      "type": "float"
+    },
+    {
+      "name": "event_id",
+      "type": "int"
+    },
+    {
+      "name": "event_description",
+      "type": "string"
+    },
+    {
+      "name": "venue_address",
+      "type": "string"
+    },
+    {
+      "name": "venue_name",
+      "type": "string"
+    },
+    {
+      "name": "event_date",
+      "type": "string"
+    },
+    {
+      "name": "latitude",
+      "type": "float"
+    },
+    {
+      "name": "venue_url",
+      "type": "string"
+    },
+    {
+      "name": "organizer_id",
+      "type": "int"
+    },
+    {
+      "name": "category",
+      "type": "string"
+    },
+    {
+      "name": "image_url",
+      "type": "string"
+    },
+    {
+      "name": "event_type",
+      "type": "string"
+    }
+  ]
+}

@@ -1,1 +1,4 @@
-pandas
+confluent_kafka
+urllib3
+requests
+avro

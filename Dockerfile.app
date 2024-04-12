@@ -1,7 +1,7 @@
 FROM python:3.12.2
 
 # Set the working directory in the container
-WORKDIR /usr/src/app
+WORKDIR /usr/src
 # Copy the current directory contents into the container at /usr/src/app
 COPY . .
 
@@ -16,4 +16,4 @@ EXPOSE 80
 # Define environment variable
 ENV NAME World
 
-ENTRYPOINT [ "python", "./app.py" ]
+ENTRYPOINT [ "python", "app.py" ]

@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "CulturalEventsKey",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "int"
+    }
+  ]
+}

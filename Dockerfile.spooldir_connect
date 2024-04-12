@@ -1,0 +1,4 @@
+FROM confluentinc/cp-kafka-connect:7.6.0
+
+# Install the Spool Dir connector from Confluent Hub
+RUN confluent-hub install jcustenborder/kafka-connect-spooldir:2.0.65 --no-prompt
