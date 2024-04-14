@@ -1,0 +1,39 @@
+{
+  "type": "record",
+  "name": "Pollution",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "ozone",
+      "type": "int"
+    },
+    {
+      "name": "particullate_matter",
+      "type": "int"
+    },
+    {
+      "name": "carbon_monoxide",
+      "type": "int"
+    },
+    {
+      "name": "sulfure_dioxide",
+      "type": "int"
+    },
+    {
+      "name": "nitrogen_dioxide",
+      "type": "int"
+    },
+    {
+      "name": "longitude",
+      "type": "float"
+    },
+    {
+      "name": "latitude",
+      "type": "float"
+    },
+    {
+      "name": "timestamp",
+      "type": "string"
+    }
+  ]
+}

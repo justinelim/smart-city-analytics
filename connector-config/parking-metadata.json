@@ -1,0 +1,21 @@
+{
+    "name": "ParkingMetadataCsvSpoolDir",
+    "config": {
+      "connector.class": "com.github.jcustenborder.kafka.connect.spooldir.SpoolDirCsvSourceConnector",
+      "tasks.max": "1",
+      "input.path": "/usr/kafka/data/input/parking_metadata",
+      "input.file.pattern": ".*\\.csv",
+      "error.path": "/usr/kafka/data/error",
+      "finished.path": "/usr/kafka/data/finished",
+      "halt.on.error": "false",
+      "topic": "parking_metadata",
+      "csv.first.row.as.header": "true",
+      "schema.generation.enabled": "false",
+      "key.converter": "io.confluent.connect.avro.AvroConverter",
+      "key.converter.schema.registry.url": "http://schema-registry:8081",
+      "value.converter": "io.confluent.connect.avro.AvroConverter",
+      "value.converter.schema.registry.url": "http://schema-registry:8081",
+      "key.schema": "{\"name\":\"ParkingMetadataKey\",\"type\":\"STRUCT\",\"isOptional\":false,\"fieldSchemas\":{\"garagecode\":{\"type\":\"STRING\",\"isOptional\":false}}}",
+      "value.schema": "{\"name\":\"ParkingMetadata\",\"type\":\"STRUCT\",\"isOptional\":false,\"fieldSchemas\":{\"garagecode\":{\"type\":\"STRING\",\"isOptional\":false},\"city\":{\"type\":\"STRING\",\"isOptional\":false},\"postalcode\":{\"type\":\"INT32\",\"isOptional\":false},\"street\":{\"type\":\"STRING\",\"isOptional\":true},\"housenumber\":{\"type\":\"STRING\",\"isOptional\":true},\"latitude\":{\"type\":\"FLOAT64\",\"isOptional\":true},\"longitude\":{\"type\":\"FLOAT64\",\"isOptional\":true}}}"
+    }
+}

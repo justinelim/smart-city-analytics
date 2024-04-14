@@ -1,6 +1,6 @@
 {
   "type": "record",
-  "name": "cultural_events",
+  "name": "CulturalEvents",
   "namespace": "com.example",
   "fields": [
     {

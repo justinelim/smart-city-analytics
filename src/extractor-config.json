@@ -1,0 +1,44 @@
+{
+    "cultural_events": {
+        "primary_key": "event_id",
+        "target_dir": "data/input/cultural_events",
+        "csv_file_pattern": "cultural_events_*.csv"
+    },
+    "library_events": {
+        "primary_key": "id",
+        "target_dir": "data/input/library_events",
+        "csv_file_pattern": "*_library*.csv"
+    },
+    "parking": {
+        "primary_key": "_id",
+        "target_dir": "data/input/parking",
+        "csv_file_pattern": "*_parking.csv"
+    },
+    "parking_metadata": {
+        "primary_key": "",
+        "target_dir": "data/input/parking_metadata",
+        "csv_file_pattern": "*_parking_address.csv"
+    },
+    "pollution": {
+        "primary_key": "id",
+        "target_dir": "data/input/pollution",
+        "tar_file_pattern": "citypulse_pollution_*.tar.gz"
+    },
+    "road_traffic": {
+        "primary_key": "_id",
+        "target_dir": "data/input/road_traffic",
+        "tar_file_pattern": "citypulse_traffic_*.tar.gz",
+        "zip_file_pattern": "citypulse_traffic_*.zip"
+    },
+    "social_events": {
+        "primary_key": "id",
+        "target_dir": "data/input/social_events",
+        "csv_file_pattern": "surrey_events.csv"
+    },
+    "weather": {
+        "primary_key": "timestamp",
+        "target_dir": "data/input/weather",
+        "tar_file_pattern": "raw_weather_data_*.tar.gz",
+        "zip_file_pattern": "raw_weather_data_*.zip"
+    }
+}

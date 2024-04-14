@@ -1,0 +1,21 @@
+{
+    "name": "LibraryEventsCsvSpoolDir",
+    "config": {
+      "connector.class": "com.github.jcustenborder.kafka.connect.spooldir.SpoolDirCsvSourceConnector",
+      "tasks.max": "1",
+      "input.path": "/usr/kafka/data/input/library_events",
+      "input.file.pattern": ".*\\.csv",
+      "error.path": "/usr/kafka/data/error",
+      "finished.path": "/usr/kafka/data/finished",
+      "halt.on.error": "false",
+      "topic": "library_events",
+      "csv.first.row.as.header": "true",
+      "schema.generation.enabled": "false",
+      "key.converter": "io.confluent.connect.avro.AvroConverter",
+      "key.converter.schema.registry.url": "http://schema-registry:8081",
+      "value.converter": "io.confluent.connect.avro.AvroConverter",
+      "value.converter.schema.registry.url": "http://schema-registry:8081",
+      "key.schema": "{\"name\":\"LibraryEventsKey\",\"type\":\"STRUCT\",\"isOptional\":false,\"fieldSchemas\":{\"id\":{\"type\":\"INT32\",\"isOptional\":false}}}",
+      "value.schema": "{\"name\":\"LibraryEvents\",\"type\":\"STRUCT\",\"isOptional\":false,\"fieldSchemas\":{\"lid\":{\"type\":\"INT32\",\"isOptional\":false},\"city\":{\"type\":\"STRING\",\"isOptional\":true},\"endtime\":{\"type\":\"STRING\",\"isOptional\":false},\"title\":{\"type\":\"STRING\",\"isOptional\":true},\"url\":{\"type\":\"STRING\",\"isOptional\":true},\"price\":{\"type\":\"STRING\",\"isOptional\":true},\"changed\":{\"type\":\"STRING\",\"isOptional\":true},\"content\":{\"type\":\"STRING\",\"isOptional\":true},\"zipcode\":{\"type\":\"STRING\",\"isOptional\":true},\"library\":{\"type\":\"STRING\",\"isOptional\":false},\"imageurl\":{\"type\":\"STRING\",\"isOptional\":true},\"teaser\":{\"type\":\"STRING\",\"isOptional\":true},\"street\":{\"type\":\"STRING\",\"isOptional\":true},\"status\":{\"type\":\"STRING\",\"isOptional\":false},\"longitude\":{\"type\":\"FLOAT64\",\"isOptional\":true},\"starttime\":{\"type\":\"STRING\",\"isOptional\":false},\"latitude\":{\"type\":\"FLOAT64\",\"isOptional\":true},\"_id\":{\"type\":\"STRING\",\"isOptional\":false},\"id\":{\"type\":\"INT32\",\"isOptional\":false},\"streamtime\":{\"type\":\"STRING\",\"isOptional\":false}}}"
+    }
+}

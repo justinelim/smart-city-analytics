@@ -1,0 +1,27 @@
+{
+  "type": "record",
+  "name": "SocialEvents",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "event_type",
+      "type": "string"
+    },
+    {
+      "name": "webcast_url",
+      "type": "string"
+    },
+    {
+      "name": "event_details",
+      "type": "string"
+    },
+    {
+      "name": "webcast_url_alternate",
+      "type": "string"
+    },
+    {
+      "name": "event_date",
+      "type": "string"
+    }
+  ]
+}

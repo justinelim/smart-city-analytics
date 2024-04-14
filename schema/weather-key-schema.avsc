@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "WeatherKey",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "timestamp",
+      "type": "string"
+    }
+  ]
+}

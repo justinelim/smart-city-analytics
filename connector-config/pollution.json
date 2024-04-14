@@ -1,0 +1,24 @@
+{
+    "name": "PollutionCsvSpoolDir",
+    "config": {
+      "connector.class": "com.github.jcustenborder.kafka.connect.spooldir.SpoolDirCsvSourceConnector",
+      "tasks.max": "1",
+      "input.path": "/usr/kafka/data/input/pollution",
+      "input.file.pattern": ".*\\.csv",
+      "error.path": "/usr/kafka/data/error",
+      "finished.path": "/usr/kafka/data/finished",
+      "halt.on.error": "false",
+      "topic": "pollution",
+      "csv.first.row.as.header": "true",
+      "schema.generation.enabled": "false",
+      "key.schema": "{\"name\":\"PollutionKey\",\"type\":\"STRUCT\",\"isOptional\":false,\"fieldSchemas\":{\"timestamp\":{\"type\":\"STRING\",\"isOptional\":false}}}",
+      "value.schema": "{\"name\":\"Pollution\",\"type\":\"STRUCT\",\"isOptional\":false,\"fieldSchemas\":{\"ozone\":{\"type\":\"INT32\",\"isOptional\":true},\"particullate_matter\":{\"type\":\"INT32\",\"isOptional\":true},\"carbon_monoxide\":{\"type\":\"INT32\",\"isOptional\":true},\"sulfure_dioxide\":{\"type\":\"INT32\",\"isOptional\":true},\"nitrogen_dioxide\":{\"type\":\"INT32\",\"isOptional\":true},\"longitude\":{\"type\":\"FLOAT64\",\"isOptional\":true},\"latitude\":{\"type\":\"FLOAT64\",\"isOptional\":true},\"timestamp\":{\"type\":\"STRING\",\"isOptional\":false}}}",
+      "key.converter": "io.confluent.connect.avro.AvroConverter",
+      "key.converter.schema.registry.url": "http://schema-registry:8081",
+      "value.converter": "io.confluent.connect.avro.AvroConverter",
+      "value.converter.schema.registry.url": "http://schema-registry:8081",
+      "transforms": "RenameFields",
+      "transforms.RenameFields.type": "org.apache.kafka.connect.transforms.ReplaceField$Value",
+      "transforms.RenameFields.renames": "particullate_matter:particulate_matter,sulfure_dioxide:sulfur_dioxide"
+    }
+}

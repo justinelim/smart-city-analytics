@@ -1,0 +1,31 @@
+{
+  "type": "record",
+  "name": "Parking",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "vehiclecount",
+      "type": "int"
+    },
+    {
+      "name": "updatetime",
+      "type": "string"
+    },
+    {
+      "name": "_id",
+      "type": "int"
+    },
+    {
+      "name": "totalspaces",
+      "type": "int"
+    },
+    {
+      "name": "garagecode",
+      "type": "string"
+    },
+    {
+      "name": "streamtime",
+      "type": "string"
+    }
+  ]
+}

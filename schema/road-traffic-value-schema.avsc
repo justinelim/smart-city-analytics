@@ -1,0 +1,43 @@
+{
+  "type": "record",
+  "name": "RoadTraffic",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "status",
+      "type": "string"
+    },
+    {
+      "name": "avgMeasuredTime",
+      "type": "int"
+    },
+    {
+      "name": "avgSpeed",
+      "type": "int"
+    },
+    {
+      "name": "extID",
+      "type": "int"
+    },
+    {
+      "name": "medianMeasuredTime",
+      "type": "int"
+    },
+    {
+      "name": "TIMESTAMP",
+      "type": "string"
+    },
+    {
+      "name": "vehicleCount",
+      "type": "int"
+    },
+    {
+      "name": "_id",
+      "type": "int"
+    },
+    {
+      "name": "REPORT_ID",
+      "type": "int"
+    }
+  ]
+}

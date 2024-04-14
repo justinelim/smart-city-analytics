@@ -1,30 +1,33 @@
-import json
-from confluent_kafka import Consumer
-from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
-from confluent_kafka.serialization import StringDeserializer
+from confluent_kafka.schema_registry import SchemaRegistryClient
+from confluent_kafka import DeserializingConsumer
+from hybrid_deserializer import HybridDeserializer
 
-# Configuration for the Schema Registry
-schema_registry_conf = {
-    'url': 'http://schema-registry:8081'
-}
+# Configure the schema registry client
+schema_registry_conf = {'url': 'http://schema-registry:8081'}
 schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
-# Avro Deserializer
-value_deserializer = AvroDeserializer(schema_registry_client)
+# Value deserializer
+value_avro_deserializer = AvroDeserializer(schema_registry_client)
 
-# Consumer configuration
+# Set up the consumer configuration
 consumer_conf = {
     'bootstrap.servers': 'broker:9092',
-    'group.id': 'test',
+    'group.id': 'test10',
     'auto.offset.reset': 'earliest',
-    'key.deserializer': StringDeserializer('utf_8'),
-    'value.deserializer': value_deserializer
+    'key.deserializer': HybridDeserializer(),  # Using the revised hybrid deserializer
+    'value.deserializer': value_avro_deserializer
 }
 
-consumer = Consumer(consumer_conf)
-consumer.subscribe(['cultural_events_topic'])
+consumer = DeserializingConsumer(consumer_conf)
+# consumer.subscribe(['pollution', 'cultural_events'])  # Subscribe to both topics
+# consumer.subscribe(['cultural_events'])
+# consumer.subscribe(['library_events'])
+# consumer.subscribe(['parking_metadata'])
+# consumer.subscribe(['social_events'])
+consumer.subscribe(['weather'])
 
+# Consume messages
 try:
     while True:
         msg = consumer.poll(1.0)
@@ -34,6 +37,8 @@ try:
             print("Consumer error: {}".format(msg.error()))
             continue
 
-        print("Received message: {}".format(msg.value()))
+        print(f"Received message: Key: {msg.key()}, Value: {msg.value()}")
+except KeyboardInterrupt:
+    print("Interrupted by user")
 finally:
     consumer.close()

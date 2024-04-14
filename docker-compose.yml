@@ -5,11 +5,12 @@ services:
       context: .
       dockerfile: Dockerfile.app
     volumes:
-      - ./src:/usr/src
+      - .:/usr/src/app
     ports:
       - "4000:80"
     networks:
       - backend
+    command: tail -f /dev/null # Override the ENTRYPOINT & keep the container running indefinitely
   
   postgres:
     image: postgres:latest
@@ -44,6 +45,7 @@ services:
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_LISTENERS: 'PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://broker:9092'
       KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://broker:29092,PLAINTEXT_HOST://broker:9092'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
@@ -53,7 +55,6 @@ services:
       KAFKA_JMX_HOSTNAME: localhost
       KAFKA_PROCESS_ROLES: 'broker,controller'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker:29093'
-      KAFKA_LISTENERS: 'PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://broker:9092'
       KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
@@ -101,8 +102,10 @@ services:
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_STATUS_STORAGE_TOPIC: docker-connect-status
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      # CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_KEY_CONVERTER: io.confluent.connect.avro.AvroConverter
       CONNECT_VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
+      CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       # CLASSPATH required due to CC-2422
       CLASSPATH: /usr/share/java/monitoring-interceptors/monitoring-interceptors-7.6.0.jar
@@ -111,17 +114,7 @@ services:
       CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
       CONNECT_LOG4J_LOGGERS: org.apache.zookeeper=ERROR,org.I0Itec.zkclient=ERROR,org.reflections=ERROR
     volumes:
-      - ./data/input/cultural_events_dataset:/usr/kafka/data/input/cultural_events_dataset
-      - ./data/input/extracted_pollution_datasets:/usr/kafka/data/input/extracted_pollution_datasets
-      - ./data/input/extracted_road_traffic_datasets:/usr/kafka/data/input/extracted_road_traffic_datasets
-      - ./data/input/extracted_weather_datasets:/usr/kafka/data/input/extracted_weather_datasets
-      - ./data/input/library_events_dataset:/usr/kafka/data/input/library_events_dataset
-      - ./data/input/parking_dataset:/usr/kafka/data/input/parking_dataset
-      - ./data/input/parking_metadata:/usr/kafka/data/input/parking_metadata
-      - ./data/error:/usr/kafka/data/error
-      - ./data/finished:/usr/kafka/data/finished
-      # - ./schema/key-schema.avsc:/usr/kafka/schema/key-schema.avsc
-      # - ./schema/value-schema.avsc:/usr/kafka/schema/value-schema.avsc
+      - ./data:/usr/kafka/data
     networks:
       - backend
 
@@ -352,8 +345,6 @@ services:
       retries: 120
 
 volumes:
-  data:
-    driver: local
   pgdata:
     driver: local
   certs:

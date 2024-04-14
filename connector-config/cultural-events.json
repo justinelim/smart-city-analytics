@@ -3,18 +3,18 @@
     "config": {
       "connector.class": "com.github.jcustenborder.kafka.connect.spooldir.SpoolDirCsvSourceConnector",
       "tasks.max": "1",
-      "input.path": "/usr/kafka/data/input/cultural_events_dataset",
-      "input.file.pattern": ".*csv",
-      "error.path": "/usr/kafka/data/error/cultural_events",
-      "finished.path": "/usr/kafka/data/finished/cultural_events",
+      "input.path": "/usr/kafka/data/input/cultural_events",
+      "input.file.pattern": ".*\\.csv",
+      "error.path": "/usr/kafka/data/error",
+      "finished.path": "/usr/kafka/data/finished",
       "halt.on.error": "false",
-      "topic": "cultural_events_topic",
+      "topic": "cultural_events",
       "schema.generation.enabled": "false",
       "key.converter": "io.confluent.connect.avro.AvroConverter",
       "key.converter.schema.registry.url": "http://schema-registry:8081",
       "value.converter": "io.confluent.connect.avro.AvroConverter",
       "value.converter.schema.registry.url": "http://schema-registry:8081",
-      "key.schema": "{\"name\":\"com.example.CulturalEventsKey\",\"type\":\"STRUCT\",\"isOptional\":false,\"fieldSchemas\":{\"event_id\":{\"type\":\"INT32\",\"isOptional\":false}}}",
-      "value.schema": "{\"name\":\"com.example.cultural_events\",\"type\":\"STRUCT\",\"isOptional\":false,\"fieldSchemas\":{\"row_id\":{\"type\":\"INT32\",\"isOptional\":false},\"city\":{\"type\":\"STRING\",\"isOptional\":true},\"event_name\":{\"type\":\"STRING\",\"isOptional\":true},\"ticket_url\":{\"type\":\"STRING\",\"isOptional\":true},\"avg_ticket_price\":{\"type\":\"STRING\",\"isOptional\":true},\"timestamp\":{\"type\":\"STRING\",\"isOptional\":true},\"postal_code\":{\"type\":\"INT32\",\"isOptional\":true},\"longitude\":{\"type\":\"FLOAT64\",\"isOptional\":true},\"event_id\":{\"type\":\"INT32\",\"isOptional\":false},\"event_description\":{\"type\":\"STRING\",\"isOptional\":true},\"venue_address\":{\"type\":\"STRING\",\"isOptional\":true},\"venue_name\":{\"type\":\"STRING\",\"isOptional\":true},\"event_date\":{\"type\":\"STRING\",\"isOptional\":true},\"latitude\":{\"type\":\"FLOAT64\",\"isOptional\":true},\"venue_url\":{\"type\":\"STRING\",\"isOptional\":true},\"organizer_id\":{\"type\":\"INT32\",\"isOptional\":true},\"category\":{\"type\":\"STRING\",\"isOptional\":true},\"image_url\":{\"type\":\"STRING\",\"isOptional\":true},\"event_type\":{\"type\":\"STRING\",\"isOptional\":true}}}"
+      "key.schema": "{\"name\":\"CulturalEventsKey\",\"type\":\"STRUCT\",\"isOptional\":false,\"fieldSchemas\":{\"event_id\":{\"type\":\"INT32\",\"isOptional\":false}}}",
+      "value.schema": "{\"name\":\"CulturalEvents\",\"type\":\"STRUCT\",\"isOptional\":false,\"fieldSchemas\":{\"row_id\":{\"type\":\"INT32\",\"isOptional\":false},\"city\":{\"type\":\"STRING\",\"isOptional\":true},\"event_name\":{\"type\":\"STRING\",\"isOptional\":true},\"ticket_url\":{\"type\":\"STRING\",\"isOptional\":true},\"avg_ticket_price\":{\"type\":\"STRING\",\"isOptional\":true},\"timestamp\":{\"type\":\"STRING\",\"isOptional\":true},\"postal_code\":{\"type\":\"INT32\",\"isOptional\":true},\"longitude\":{\"type\":\"FLOAT64\",\"isOptional\":true},\"event_id\":{\"type\":\"INT32\",\"isOptional\":false},\"event_description\":{\"type\":\"STRING\",\"isOptional\":true},\"venue_address\":{\"type\":\"STRING\",\"isOptional\":true},\"venue_name\":{\"type\":\"STRING\",\"isOptional\":true},\"event_date\":{\"type\":\"STRING\",\"isOptional\":true},\"latitude\":{\"type\":\"FLOAT64\",\"isOptional\":true},\"venue_url\":{\"type\":\"STRING\",\"isOptional\":true},\"organizer_id\":{\"type\":\"INT32\",\"isOptional\":true},\"category\":{\"type\":\"STRING\",\"isOptional\":true},\"image_url\":{\"type\":\"STRING\",\"isOptional\":true},\"event_type\":{\"type\":\"STRING\",\"isOptional\":true}}}"
     }
 }

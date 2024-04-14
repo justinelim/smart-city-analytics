@@ -1,0 +1,35 @@
+{
+  "type": "record",
+  "name": "ParkingMetadata",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "garagecode",
+      "type": "string"
+    },
+    {
+      "name": "city",
+      "type": "string"
+    },
+    {
+      "name": "postalcode",
+      "type": "int"
+    },
+    {
+      "name": "street",
+      "type": "string"
+    },
+    {
+      "name": "housenumber",
+      "type": "string"
+    },
+    {
+      "name": "latitude",
+      "type": "float"
+    },
+    {
+      "name": "longitude",
+      "type": "float"
+    }
+  ]
+}

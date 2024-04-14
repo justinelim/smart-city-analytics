@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "ParkingMetadataKey",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "garagecode",
+      "type": "string"
+    }
+  ]
+}

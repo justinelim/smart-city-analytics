@@ -10,7 +10,7 @@ consumer = AvroConsumer({
     'auto.offset.reset': 'earliest'
 })
 
-consumer.subscribe(['cultural_events_topic'])
+consumer.subscribe(['pollution_topic'])
 
 try:
     while True:

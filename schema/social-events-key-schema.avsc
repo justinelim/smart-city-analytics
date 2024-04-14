@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "SocialEventsKey",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "event_date",
+      "type": "string"
+    }
+  ]
+}

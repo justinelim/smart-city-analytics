@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "PollutionKey",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "timestamp",
+      "type": "string"
+    }
+  ]
+}

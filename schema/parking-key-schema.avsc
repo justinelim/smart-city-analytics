@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "ParkingKey",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "_id",
+      "type": "int"
+    }
+  ]
+}

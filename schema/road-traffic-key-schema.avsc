@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "RoadTrafficKey",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "_id",
+      "type": "int"
+    }
+  ]
+}

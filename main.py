@@ -1,5 +1,5 @@
 import asyncio
-from scripts.data_extractor import main as data_extractor_main
+from src.data_extractor import main as data_extractor_main
 from scripts.data_stream_simulator import main as data_stream_simulator_main
 from src.data_cleaning.data_cleaner import main as data_cleaner_main
 

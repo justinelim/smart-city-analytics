@@ -1,0 +1,39 @@
+{
+  "type": "record",
+  "name": "Weather",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "timestamp",
+      "type": "string"
+    },
+    {
+      "name": "tempm",
+      "type": "float"
+    },
+    {
+      "name": "wspdm",
+      "type": "float"
+    },
+    {
+      "name": "dewptm",
+      "type": "float"
+    },
+    {
+      "name": "hum",
+      "type": "int"
+    },
+    {
+      "name": "pressurem",
+      "type": "int"
+    },
+    {
+      "name": "vism",
+      "type": "float"
+    },
+    {
+      "name": "wdird",
+      "type": "int"
+    }
+  ]
+}

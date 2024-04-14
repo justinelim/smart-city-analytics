@@ -1,0 +1,87 @@
+{
+  "type": "record",
+  "name": "LibraryEvents",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "lid",
+      "type": "int"
+    },
+    {
+      "name": "city",
+      "type": "string"
+    },
+    {
+      "name": "endtime",
+      "type": "string"
+    },
+    {
+      "name": "title",
+      "type": "string"
+    },
+    {
+      "name": "url",
+      "type": "string"
+    },
+    {
+      "name": "price",
+      "type": "string"
+    },
+    {
+      "name": "changed",
+      "type": "string"
+    },
+    {
+      "name": "content",
+      "type": "string"
+    },
+    {
+      "name": "zipcode",
+      "type": "string"
+    },
+    {
+      "name": "library",
+      "type": "string"
+    },
+    {
+      "name": "imageurl",
+      "type": "string"
+    },
+    {
+      "name": "teaser",
+      "type": "string"
+    },
+    {
+      "name": "street",
+      "type": "string"
+    },
+    {
+      "name": "status",
+      "type": "string"
+    },
+    {
+      "name": "longitude",
+      "type": "float"
+    },
+    {
+      "name": "starttime",
+      "type": "string"
+    },
+    {
+      "name": "latitude",
+      "type": "float"
+    },
+    {
+      "name": "_id",
+      "type": "string"
+    },
+    {
+      "name": "id",
+      "type": "int"
+    },
+    {
+      "name": "streamtime",
+      "type": "string"
+    }
+  ]
+}
